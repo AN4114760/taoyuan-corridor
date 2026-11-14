@@ -1,0 +1,11 @@
+requests
+pandas
+numpy
+shapely>=2.0
+pyproj
+rasterio
+pillow
+scipy
+scikit-image
+python-dotenv
+pyyaml

@@ -1,0 +1,13 @@
+{
+  "facility": "衛福部桃園醫院",
+  "date": "2026-11-14",
+  "source_version": "synthetic-test+canopy_exg",
+  "segments": 622,
+  "total_side_length_m": 12294,
+  "sidewalk_detected_ratio": 0.941,
+  "continuity_ratio": 0.98,
+  "mean_canopy_overlap": 0.117,
+  "suspect_obstruction_segments": 54,
+  "suspect_high_priority": 54,
+  "break_segments": 12
+}

@@ -1,0 +1,26 @@
+# 模組一共用設定
+pilot:
+  id: taoyuan_hospital
+  name: 衛福部桃園醫院
+  lat: 24.97717
+  lon: 121.26915
+
+buffer_m: 500            # 機構周邊分析半徑
+
+orthophoto:
+  layer: PHOTO2          # 國土測繪中心正射影像
+  zoom: 19               # 約 0.27 m/px；z20 只是放大，沒有更多細節
+  url: "https://wmts.nlsc.gov.tw/wmts/{layer}/default/GoogleMapsCompatible/{z}/{y}/{x}"
+  user_agent: "taoyuan-corridor-research/0.1 (academic, non-commercial)"
+  delay_s: 0.15          # 每張圖磚之間的禮貌延遲
+  photo_year: 2024       # 影像浮水印「NLSC 2024」（桃園醫院周邊；其他區域請各自確認）
+
+segmentation:
+  prompts: [sidewalk, tree canopy, shrub, road, crosswalk]
+  exg_threshold: 0.05    # SAM 3 權限未下來前，樹冠備案用的 ExG 門檻（正規化後）
+
+metrics:
+  segment_length_m: 20   # 路段單元長度
+  side_offset_m: [3, 15] # 從道路中心線往外找人行道的距離範圍
+  overlap_flag: 0.5      # 綠蔽交集率 ≥ 此值 → 疑似阻礙、優先檢核
+  narrow_width_m: 3.0    # 人行道寬 < 3m 時提高優先權（市府手冊：未達 3m 不植行道樹）

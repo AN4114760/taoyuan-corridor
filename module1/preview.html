@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>無障礙廊道預覽</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body, #map { height: 100%; margin: 0; }
+  body { font-family: "PingFang TC", "Noto Sans TC", sans-serif; }
+  .legend { background: #fff; padding: 10px 12px; border-radius: 8px; line-height: 1.7; font-size: 13px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  .legend i { display: inline-block; width: 22px; height: 5px; margin-right: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// 用法：在專案根目錄執行 `python3 -m http.server 8000`，開啟
+// http://localhost:8000/module1/preview.html?id=taoyuan_hospital
+const id = new URLSearchParams(location.search).get('id') || 'taoyuan_hospital';
+const map = L.map('map', { maxZoom: 21 });
+
+L.tileLayer('https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/{z}/{y}/{x}', {
+  maxNativeZoom: 19, maxZoom: 21,
+  attribution: '正射影像 © 內政部國土測繪中心'
+}).addTo(map);
+
+const COLORS = { normal: '#2896ff', suspect_obstruction: '#ff9600', break: '#e61e1e', no_sidewalk_detected: '#969696' };
+const LABELS = { normal: '正常', suspect_obstruction: '疑似阻礙（優先檢核）', break: '斷點', no_sidewalk_detected: '未偵測到人行道' };
+const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
+
+// 實測人行道面（內政部國土管理署 113 上半年）＋綠蔽交集率
+const SW_COLORS = { normal: '#2896ff', suspect_obstruction: '#ff8c00', 'net_width_below_1.5m': '#e61ec8' };
+const SW_LABELS = { normal: '正常', suspect_obstruction: '疑似阻礙（綠蔽交集率高）', 'net_width_below_1.5m': '淨寬不足 1.5m' };
+const layers = L.control.layers(null, null, { collapsed: false }).addTo(map);
+fetch(`../data/outputs/${id}_sidewalk_metrics_moi.geojson`).then(r => r.ok ? r.json() : null).then(gj => {
+  if (!gj) return;
+  const sw = L.geoJSON(gj, {
+    style: f => ({ color: '#fff', weight: 1, fillColor: SW_COLORS[f.properties.flag], fillOpacity: .75 }),
+    onEachFeature: (f, l) => {
+      const p = f.properties;
+      l.bindPopup(`<b>${p.road_name}</b> ${p.from || ''} → ${p.to || ''}<br>
+        標記：${SW_LABELS[p.flag]}${p.priority ? '｜優先度 ' + p.priority : ''}<br>
+        綠蔽交集率：${pct(p.canopy_overlap_ratio)}<br>
+        寬度 ${p.width_m ?? '–'} m｜淨寬 ${p.net_width_m ?? '–'} m｜路緣斜坡 ${p.ramps ?? '–'} 處<br>
+        <small>${p.sw_id}｜人行道：${p.sidewalk_source}｜樹冠：${p.canopy_source}</small>`);
+    }
+  }).addTo(map);
+  layers.addOverlay(sw, '實測人行道（國土管理署）');
+  map.fitBounds(sw.getBounds().pad(0.15));
+});
+
+fetch(`../data/outputs/${id}_corridor_segments.geojson`).then(r => r.ok ? r.json() : null).then(gj => {
+  if (!gj) return;
+  const layer = L.geoJSON(gj, {
+    style: f => ({ color: COLORS[f.properties.flag], weight: f.properties.priority === 'high' ? 7 : 5, opacity: .9 }),
+    onEachFeature: (f, l) => {
+      const p = f.properties;
+      l.bindPopup(`<b>${p.road_name || '未命名道路'}</b>（${p.side === 'left' ? '左' : '右'}側）<br>
+        標記：${LABELS[p.flag]}${p.priority ? '｜優先度 ' + p.priority : ''}<br>
+        綠蔽交集率：${pct(p.canopy_overlap_ratio)}<br>
+        人行道可見比例：${pct(p.sidewalk_visible_ratio)}<br>
+        估計寬度：${p.est_width_m ?? '–'} m<br>
+        <small>${p.seg_id}｜航照 ${p.photo_year}｜${p.source_version}</small>`);
+    }
+  });
+  const synthetic = gj.features.length && gj.features[0].properties.source_version.startsWith('synthetic');
+  // 影像判讀路段預設不顯示；測試資料標註清楚
+  layers.addOverlay(layer, synthetic ? '影像判讀路段（測試資料，非研究結果）' : '影像判讀路段（SAM 3）');
+});
+
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = () => {
+  const d = L.DomUtil.create('div', 'legend');
+  d.innerHTML = '<b>實測人行道</b><br>' + Object.keys(SW_COLORS)
+    .map(k => `<i style="background:${SW_COLORS[k]}"></i>${SW_LABELS[k]}`).join('<br>') +
+    '<br><b>影像判讀路段</b><br>' + Object.keys(COLORS)
+    .map(k => `<i style="background:${COLORS[k]}"></i>${LABELS[k]}`).join('<br>');
+  return d;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>

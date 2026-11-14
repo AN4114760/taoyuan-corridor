@@ -1,0 +1,12 @@
+.venv/
+.env
+__pycache__/
+.DS_Store
+
+# 原始與中間資料（體積大或可重新下載）
+data/raw/
+data/tiles/
+data/processed/*
+!data/processed/manual_sidewalk_template.geojson
+*.tif
+*.tiff
