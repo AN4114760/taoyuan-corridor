@@ -49,6 +49,18 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/preview.html?i
 ```
 輸出 `data/outputs/<id>_sidewalk_metrics_moi.geojson/.csv`、`_summary_moi.json`、`_preview_moi.jpg`。
 
+## 嚴重程度地圖（map.html）
+導航風格：淡灰 OSM 底圖＋人行道依嚴重程度上色（綠正常／黃需注意／紅嚴重／深灰主要道路無人行道），加上設施圖標。
+```bash
+.venv/bin/python module1/severity_map.py        # → data/outputs/<id>_severity.geojson（道路線段）
+.venv/bin/python module1/fetch_osm_features.py  # → data/outputs/<id>_features.geojson（設施點位，MapFeature 格式）
+python3 -m http.server 8000                     # 開 http://localhost:8000/module1/map.html?id=taoyuan_hospital
+```
+- 設施圖標在 `icons/`（規格見 `icons/README.md`，預覽 `icons/preview.html`）：依 `type` 對應 SVG，機構 48px、設施 38px；圖標顏色只代表類別，不代表廊道評級
+- 所有點位預設 `verified: false`，資訊卡顯示「待現勘」；診所圖層預設關閉（研究範圍排除）；設施點位密集時聚合
+- OSM 在桃園的無障礙標註很少（桃園醫院周邊僅公車站 15、醫院 1、診所 1、行穿線 1），坡道／導盲磚／有聲號誌／上下車點需由現地調查補入
+- 底圖使用 OSM 官方圖磚（研究原型少量使用）；正式 App 需改自架或商用圖磚
+
 ## QGIS 手動描繪（驗證用標準答案）
 1. 開啟 QGIS，專案座標系設為 **EPSG:3826（TWD97 / TM2）**
 2. 拖入 `data/processed/taoyuan_hospital_ortho_z19.tif`（底圖）與 `data/outputs/taoyuan_hospital_sidewalk_metrics_moi.geojson`（參考）

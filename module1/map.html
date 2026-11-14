@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>無障礙廊道地圖</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<style>
+  html, body, #map { height: 100%; margin: 0; background: #f2f2ef; }
+  body { font-family: "PingFang TC", "Noto Sans TC", system-ui, sans-serif; }
+  .chip { position: absolute; z-index: 1000; left: 12px; top: 12px; background: #fff; border-radius: 12px;
+          padding: 8px 12px; box-shadow: 0 1px 6px rgba(0,0,0,.18); font-size: 15px; font-weight: 600; color: #222; }
+  .chip small { display: block; font-weight: 400; color: #777; font-size: 12px; margin-top: 2px; }
+  .legend { position: absolute; z-index: 1000; left: 12px; bottom: 22px; background: #fff; border-radius: 12px;
+            padding: 8px 12px; box-shadow: 0 1px 6px rgba(0,0,0,.18); font-size: 13px; color: #333; line-height: 1.9; }
+  .legend i { display: inline-block; width: 26px; height: 7px; border-radius: 4px; margin-right: 8px;
+              vertical-align: middle; box-shadow: 0 0 0 1.5px #2b2b2b; }
+  .leaflet-popup-content { font-size: 13px; line-height: 1.6; }
+  .pin { filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .osm-muted { filter: grayscale(1) brightness(1.08) contrast(.85); }
+  .feat-icon { filter: drop-shadow(0 1px 2px rgba(0,0,0,.28)); }
+  .card h4 { margin: 0 0 4px; font-size: 14px; }
+  .card .row { color: #444; }
+  .card .muted { color: #888; font-size: 12px; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 9px; margin-left: 4px; vertical-align: 1px; }
+  .badge.todo { background: #fff4d6; color: #8a5a00; border: 1px solid #f3cf6b; }
+  .badge.ok { background: #e3f6e8; color: #17692f; border: 1px solid #9fd8ae; }
+  .leaflet-control-layers { border-radius: 12px !important; font-size: 13px; }
+  .chip { max-width: calc(100% - 100px); }   /* 右上角留給圖層開關 */
+  .leaflet-control-layers-overlays label img { width: 20px; height: 20px; vertical-align: -5px; margin-right: 4px; }
+  .legend .note { font-size: 11px; color: #888; line-height: 1.4; margin-top: 4px; max-width: 150px; }
+  .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background: rgba(51,65,85,.18); }
+  .marker-cluster div { background: #fff; border: 1.65px solid #334155; color: #334155; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="chip" id="title">人行道無障礙狀況<small>載入中…</small></div>
+<div class="legend">
+  <div><i style="background:#2bb24c"></i>正常</div>
+  <div><i style="background:#f5c400"></i>需注意</div>
+  <div><i style="background:#e5322d"></i>嚴重</div>
+  <div><i style="background:#555"></i>無人行道</div>
+  <div class="note">線色＝人行道狀況；圖標顏色只代表設施類別</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+// 用法：在專案根目錄執行 `python3 -m http.server 8000`，開啟
+// http://localhost:8000/module1/map.html?id=taoyuan_hospital
+const id = new URLSearchParams(location.search).get('id') || 'taoyuan_hospital';
+const map = L.map('map', { zoomControl: false, attributionControl: true, maxZoom: 20 });
+
+// 底圖：OpenStreetMap 官方圖磚（ODbL），以 CSS 調成淡灰色讓彩色線條突出
+// 使用政策：https://operations.osmfoundation.org/policies/tiles/（研究原型少量使用；正式 App 需改用自架或商用圖磚）
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, className: 'osm-muted',
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const COLOR = { good: '#2bb24c', caution: '#f5c400', severe: '#e5322d', missing: '#555555' };
+const LABEL = { good: '正常', caution: '需注意', severe: '嚴重', missing: '無人行道' };
+const ORDER = { missing: 0, good: 1, caution: 2, severe: 3 };   // 嚴重的畫在最上層
+const pct = v => v == null ? '–' : Math.round(v * 100) + '%';
+
+fetch(`../data/outputs/${id}_severity.geojson`).then(r => r.json()).then(gj => {
+  const feats = gj.features.slice().sort((a, b) => ORDER[a.properties.level] - ORDER[b.properties.level]);
+  const sorted = { type: 'FeatureCollection', features: feats };
+  // 深色外框（casing）
+  L.geoJSON(sorted, { interactive: false,
+    style: () => ({ color: '#2b2b2b', weight: 11, opacity: .9, fill: false, lineJoin: 'round', lineCap: 'round' }) }).addTo(map);
+  // 依嚴重程度上色
+  const lines = L.geoJSON(sorted, {
+    style: f => ({ color: COLOR[f.properties.level], weight: 7, opacity: 1, fill: false, lineJoin: 'round', lineCap: 'round' }),
+    onEachFeature: (f, l) => {
+      const p = f.properties;
+      const head = `<b>${p.road_name || '未命名道路'}</b>　<span style="color:${COLOR[p.level]}">●</span> ${LABEL[p.level]}`;
+      l.bindPopup(p.kind === 'missing' ? `${head}<br>${p.label}` :
+        `${head}<br>${p.from || ''}${p.to ? ' → ' + p.to : ''}<br>
+         ${p.label !== '正常' ? '原因：' + p.label + '<br>' : ''}
+         寬 ${p.width_m ?? '–'} m・淨寬 ${p.net_width_m ?? '–'} m・斜坡 ${p.ramps ?? '–'} 處・綠蔽 ${pct(p.canopy_overlap_ratio)}`);
+    }
+  }).addTo(map);
+
+  const [lon, lat] = gj.metadata.center;
+  loadFeatures(gj.metadata);
+
+  const c = gj.features.reduce((a, f) => (a[f.properties.level] = (a[f.properties.level] || 0) + 1, a), {});
+  document.getElementById('title').innerHTML =
+    `${gj.metadata.facility} 周邊人行道<small>嚴重 ${c.severe || 0}・需注意 ${c.caution || 0}・無人行道 ${c.missing || 0} 段｜人行道 ${gj.metadata.sidewalk_source}</small>`;
+  map.fitBounds(L.latLng(lat, lon).toBounds(gj.metadata.radius_m * 2));
+});
+
+// ===== 設施圖標（icons/ 規格：機構 48px、設施 38px；顏色只代表類別，不代表廊道評級）=====
+const TYPES = {
+  'hospital':           { name: '醫院',           group: 'facility', show: true },
+  'care-home':          { name: '安養機構',       group: 'facility', show: true },
+  'clinic':             { name: '診所',           group: 'facility', show: false },  // 研究範圍排除診所，預設關閉
+  'bus-stop':           { name: '公車站',         group: 'transit',  show: true },
+  'accessible-pickup':  { name: '無障礙上下車點', group: 'transit',  show: true },
+  'accessible-parking': { name: '身障優先車格',   group: 'transit',  show: true },
+  'access-ramp':        { name: '無障礙坡道',     group: 'access',   show: true },
+  'tactile-paving':     { name: '導盲磚',         group: 'access',   show: true },
+  'audible-signal':     { name: '有聲號誌',       group: 'access',   show: true },
+  'crosswalk':          { name: '行人穿越道',     group: 'access',   show: true },
+};
+const SOURCE = { 'field-survey': '現地調查', 'government-data': '政府資料', 'osm': 'OpenStreetMap', 'ai-detected': 'AI 判釋' };
+
+// marker factory：依 type 對應 SVG
+function makeMarker(f) {
+  const p = f.properties, size = TYPES[p.type].group === 'facility' ? 48 : 38;
+  const [x, y] = f.geometry.coordinates;
+  const m = L.marker([y, x], { icon: L.icon({ iconUrl: `../icons/${p.type}.svg`, iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2 + 2], className: 'feat-icon' }),
+    zIndexOffset: size === 48 ? 1000 : 0 });
+  m.bindTooltip(p.name || TYPES[p.type].name, { direction: 'top', offset: [0, -size / 2] });
+  m.bindPopup(card(p));
+  return m;
+}
+
+const v = x => (x === undefined || x === null || x === '') ? '<span class="muted">待調查</span>' : x;
+function card(p) {
+  const q = p.properties || {};
+  const status = p.verified ? '<span class="badge ok">已現勘</span>' : '<span class="badge todo">待現勘</span>';
+  const rows = {
+    'hospital':  [['地址', p.address], ['機構層級', q.healthcare_level], ['主要入口', q.entrance], ['最近公車站', q.nearest_bus_stop], ['廊道評級', q.corridor_grade]],
+    'care-home': [['機構類型', q.facility_type], ['地址', p.address], ['主要出入口', q.entrance], ['最近上下車點', q.nearest_pickup], ['廊道評級', q.corridor_grade]],
+    'clinic':    [['地址', p.address], ['服務類別', q.healthcare], ['納入研究', '否（提案範圍排除診所）']],
+    'bus-stop':  [['路線', q.route_ref], ['站牌方向', q.direction], ['候車空間', q.shelter === 'yes' ? '有候車亭' : q.shelter], ['至機構入口路徑', q.path_to_entrance]],
+    'accessible-pickup':  [['類型', q.pickup_type], ['可否臨停', q.stopping_allowed], ['上下車側空間', q.side_clearance], ['最近坡道', q.nearest_ramp], ['主管機關確認', q.authority_confirmed]],
+    'accessible-parking': [['車格數', q['capacity:disabled']], ['標線／標誌', q.marking], ['銜接人行道', q.sidewalk_link], ['障礙物', q.obstacle]],
+    'access-ramp':    [['坡道形式', q.kerb === 'lowered' ? '路緣降低' : q.kerb === 'flush' ? '齊平' : q.ramp_type], ['坡度', q.slope], ['有效淨寬', q.width], ['側向高差', q.side_drop], ['銜接導盲磚', q.tactile_paving]],
+    'tactile-paving': [['狀態', q.condition], ['連續性', q.continuity], ['方向正確', q.direction_ok]],
+    'audible-signal': [['可操作性', q.operable], ['聲音提示', q['traffic_signals:sound']]],
+    'crosswalk':      [['號誌', q.crossing], ['庇護空間', q['crossing:island']], ['路緣坡道對位', q.kerb_alignment], ['導盲磚', q.tactile_paving]],
+  }[p.type] || [];
+  return `<div class="card"><h4>${p.name || TYPES[p.type].name}${status}</h4>
+    <div class="muted">${TYPES[p.type].name}</div>
+    ${rows.map(([k, val]) => `<div class="row">${k}：${v(val)}</div>`).join('')}
+    ${p.notes ? `<div class="row">備註：${p.notes}</div>` : ''}
+    <div class="muted">來源：${SOURCE[p.source] || p.source || '–'}${p.verified ? '' : '｜資料未經本研究現地確認'}</div></div>`;
+}
+
+function loadFeatures(meta) {
+  fetch(`../data/outputs/${id}_features.geojson`).then(r => r.ok ? r.json() : { features: [] }).then(fc => {
+    const control = L.control.layers(null, null, { collapsed: true, position: 'topright' }).addTo(map);
+    Object.entries(TYPES).forEach(([type, t]) => {
+      const feats = fc.features.filter(f => f.properties.type === type)
+        .map(f => ({ ...f, properties: { verified: false, ...f.properties } }));   // 預設待現勘
+      // 機構不聚合；設施點位密集時聚合，放大後展開
+      const layer = t.group === 'facility' ? L.layerGroup()
+        : L.markerClusterGroup({ showCoverageOnHover: false, disableClusteringAtZoom: 18, maxClusterRadius: 40 });
+      feats.forEach(f => layer.addLayer(makeMarker(f)));
+      if (t.show) layer.addTo(map);
+      control.addOverlay(layer, `<img src="../icons/${type}.svg">${t.name}（${feats.length}）`);
+    });
+  });
+}
+</script>
+</body>
+</html>
