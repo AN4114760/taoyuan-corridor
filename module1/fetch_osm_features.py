@@ -19,11 +19,9 @@ type 對應（OSM 標籤 → 圖標）：
 """
 import argparse
 import json
-import subprocess
 
-from common import DATA, UA, bbox_around, load_config
+from common import DATA, bbox_around, load_config, overpass
 
-OVERPASS = "https://overpass-api.de/api/interpreter"
 
 
 def classify(t):
@@ -73,10 +71,8 @@ def main():
   nwr["capacity:disabled"]{bb};
 );
 out center tags;"""
-    res = subprocess.run(["curl", "-sS", "-m", "120", "-A", UA, "--data-urlencode", f"data={q}", OVERPASS],
-                         capture_output=True, text=True, check=True)
     feats, counts = [], {}
-    for el in json.loads(res.stdout)["elements"]:
+    for el in overpass(q):
         t = el.get("tags", {})
         typ = classify(t)
         if not typ:
@@ -101,6 +97,41 @@ out center tags;"""
     out = DATA / "outputs" / f"{args.id}_features.geojson"
     out.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False))
     print(counts, "→", out)
+    fetch_facility_buildings(args.id, bb)
+
+
+NON_MEDICAL_SHOP = {"shop", "cuisine"}  # 院內便利商店、餐廳等不列入
+
+
+def fetch_facility_buildings(site_id, bb):
+    """醫療／療養院所範圍內有名稱的建築物與院內設施（例如門急診大樓、醫療大樓），供底圖標示。"""
+    q = f"""[out:json][timeout:90];
+(
+  way["amenity"~"^(hospital|clinic|nursing_home)$"]{bb};
+  relation["amenity"~"^(hospital|clinic|nursing_home)$"]{bb};
+  way["social_facility"~"^(nursing_home|assisted_living)$"]{bb};
+)->.f;
+.f map_to_area->.a;
+(
+  way["building"]["name"](area.a);
+  relation["building"]["name"](area.a);
+  node["name"](area.a);
+);
+out center tags;"""
+    feats = []
+    for el in overpass(q):
+        t = el.get("tags", {})
+        if any(k in t for k in NON_MEDICAL_SHOP) or t.get("amenity") in ("cafe", "restaurant", "fast_food", "atm", "vending_machine"):
+            continue
+        lat = el.get("lat") or el.get("center", {}).get("lat")
+        lon = el.get("lon") or el.get("center", {}).get("lon")
+        if lat is None:
+            continue
+        feats.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                      "properties": {"name": t.get("name"), "building": t.get("building"), "osm_id": f"{el['type']}/{el['id']}"}})
+    out = DATA / "outputs" / f"{site_id}_facility_buildings.geojson"
+    out.write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False))
+    print(f"院內建築名稱 {len(feats)} 筆：", "、".join(f["properties"]["name"] for f in feats), "→", out)
 
 
 if __name__ == "__main__":

@@ -47,18 +47,61 @@
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
 <script>
 // 用法：在專案根目錄執行 `python3 -m http.server 8000`，開啟
 // http://localhost:8000/module1/map.html?id=taoyuan_hospital
 const id = new URLSearchParams(location.search).get('id') || 'taoyuan_hospital';
 const map = L.map('map', { zoomControl: false, attributionControl: true, maxZoom: 20 });
 
-// 底圖：OpenStreetMap 官方圖磚（ODbL），以 CSS 調成淡灰色讓彩色線條突出
-// 使用政策：https://operations.osmfoundation.org/policies/tiles/（研究原型少量使用；正式 App 需改用自架或商用圖磚）
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, className: 'osm-muted',
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+// ===== 底圖：OpenFreeMap 向量圖磚（OpenStreetMap 資料，Positron 淡灰樣式）=====
+// 只保留：醫療／療養院所、地標、路名、地名、醫療院所內大樓名稱
+// 不顯示：門牌號、商店餐廳等一般 POI、宗教場所（Positron 本身不含門牌與一般 POI，下面只加回指定類別）
+const ZH = ['coalesce', ['get', 'name:zh-Hant'], ['get', 'name:zh'], ['get', 'name']];
+const HALO = { 'text-halo-color': '#ffffff', 'text-halo-width': 1.4 };
+const FONT = ['Noto Sans Regular'];
+const MEDICAL = ['match', ['get', 'class'], ['hospital', 'doctors', 'dentist'], true, false];
+const LANDMARK = ['any',
+  // police＝派出所／警察局、fire_station＝消防局
+  ['match', ['get', 'class'], ['college', 'railway', 'police', 'fire_station', 'library', 'stadium', 'museum'], true, false],
+  ['==', ['get', 'subclass'], 'post_office'],   // 郵局（不含包裹櫃）
+  ['all', ['==', ['get', 'class'], 'school'], ['==', ['get', 'subclass'], 'school']],   // 不含幼兒園
+  ['all', ['==', ['get', 'class'], 'park'], ['has', 'name']]];
+const isHospital = ['==', ['get', 'subclass'], 'hospital'];
+
+fetch('https://tiles.openfreemap.org/styles/positron').then(r => r.json()).then(style => {
+  style.layers = style.layers.filter(l => !['airport', 'highway-shield-us-interstate', 'road_shield_us'].includes(l.id));
+  style.layers.forEach(l => {   // 名稱只顯示中文（預設為「英文 + 中文」）
+    if (l.type === 'symbol' && l.layout && l.layout['text-field'] && !l.id.includes('shield')) l.layout['text-field'] = ZH;
+  });
+  style.sources.facility_buildings = { type: 'geojson',
+    data: new URL(`../data/outputs/${id}_facility_buildings.geojson`, location.href).href };
+  style.layers.push(
+    // 地標：灰字
+    { id: 'poi-landmark', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 15, filter: LANDMARK,
+      layout: { 'text-field': ZH, 'text-font': FONT, 'text-size': 11, 'text-max-width': 8 },
+      paint: { 'text-color': '#6b7280', ...HALO } },
+    // 醫療院所內大樓名稱：深藍字，z16 以上
+    { id: 'facility-building-label', type: 'symbol', source: 'facility_buildings', minzoom: 16,
+      layout: { 'text-field': ['get', 'name'], 'text-font': FONT, 'text-size': 11.5, 'text-max-width': 6 },
+      paint: { 'text-color': '#1e3a8a', ...HALO } },
+    // 醫療院所：永遠最先出現——圖磚有 POI 資料起（z12）就顯示，且放在最上層，
+    // MapLibre 由上層往下擺放文字，碰撞時優先保留醫療院所、其他標籤讓位
+    ...[['clinic', ['all', MEDICAL, ['!', isHospital]], 3, 11],
+        ['hospital', ['all', MEDICAL, isHospital], 4.5, 13]].flatMap(([k, filter, r, size]) => [
+      { id: `poi-medical-${k}-dot`, type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', filter, minzoom: 12,
+        paint: { 'circle-radius': r, 'circle-color': '#c0262d', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.2 } },
+      { id: `poi-medical-${k}`, type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', filter, minzoom: 12,
+        layout: { 'text-field': ZH, 'text-font': FONT, 'text-size': size,
+          'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-max-width': 8,
+          'symbol-sort-key': ['case', isHospital, 0, 1] },
+        paint: { 'text-color': '#9f1d24', ...HALO } }])
+  );
+  L.maplibreGL({ style, attribution:
+    '<a href="https://openfreemap.org">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+});
 
 const COLOR = { good: '#2bb24c', caution: '#f5c400', severe: '#e5322d', missing: '#555555' };
 const LABEL = { good: '正常', caution: '需注意', severe: '嚴重', missing: '無人行道' };

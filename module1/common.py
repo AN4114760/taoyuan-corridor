@@ -22,6 +22,30 @@ def curl_get(url, out_path=None, timeout=120, extra=()):
     return subprocess.run(cmd, check=True, capture_output=True).stdout
 
 
+OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+]
+
+
+def overpass(query, timeout=120, retries=2):
+    """Overpass 查詢（curl），忙線或限流時重試並輪替備用伺服器；回傳 elements。"""
+    import json
+    import time
+    last = ""
+    for attempt in range(retries + 1):
+        for url in OVERPASS_ENDPOINTS:
+            r = subprocess.run(["curl", "-sS", "-m", str(timeout), "-A", UA, "--data-urlencode", f"data={query}", url],
+                               capture_output=True, text=True)
+            try:
+                return json.loads(r.stdout)["elements"]
+            except (ValueError, KeyError):
+                last = (r.stdout or r.stderr)[:200]
+                time.sleep(3 * (attempt + 1))
+    raise RuntimeError(f"Overpass 查詢失敗：{last}")
+
+
 def load_config():
     with open(ROOT / "config.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)

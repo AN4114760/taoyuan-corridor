@@ -59,7 +59,10 @@ python3 -m http.server 8000                     # 開 http://localhost:8000/modu
 - 設施圖標在 `icons/`（規格見 `icons/README.md`，預覽 `icons/preview.html`）：依 `type` 對應 SVG，機構 48px、設施 38px；圖標顏色只代表類別，不代表廊道評級
 - 所有點位預設 `verified: false`，資訊卡顯示「待現勘」；診所圖層預設關閉（研究範圍排除）；設施點位密集時聚合
 - OSM 在桃園的無障礙標註很少（桃園醫院周邊僅公車站 15、醫院 1、診所 1、行穿線 1），坡道／導盲磚／有聲號誌／上下車點需由現地調查補入
-- 底圖使用 OSM 官方圖磚（研究原型少量使用）；正式 App 需改自架或商用圖磚
+- 底圖：OpenFreeMap 向量圖磚（OSM 資料、Positron 樣式，免金鑰），經 MapLibre 接入 Leaflet；名稱只顯示中文
+  - 保留：醫療院所（永遠最先出現、最上層，z12 起）、地標（學校、大學、車站、公園、郵局、派出所／警察局、消防局、圖書館、體育場、博物館）、路名、地名、醫療院所內大樓名稱（z16 起，來自 `<id>_facility_buildings.geojson`）
+  - 不顯示：門牌號、商店餐廳等一般 POI、宗教場所
+  - 無頭 Chrome 無法渲染 WebGL，檢查畫面請用一般瀏覽器
 
 ## QGIS 手動描繪（驗證用標準答案）
 1. 開啟 QGIS，專案座標系設為 **EPSG:3826（TWD97 / TM2）**
