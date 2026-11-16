@@ -1,12 +1,12 @@
 {
   "facility": "衛福部桃園醫院",
-  "date": "2026-11-14",
+  "date": "2026-11-16",
   "sidewalk_source": "MOI 113H1 (2024-06)",
-  "canopy_source": "exg on NLSC 2024",
+  "canopy_source": "sam3 on NLSC 2024",
   "sidewalk_count": 44,
   "sidewalk_area_m2": 11224,
-  "area_weighted_canopy_overlap": 0.161,
-  "suspect_obstruction": 4,
+  "area_weighted_canopy_overlap": 0.201,
+  "suspect_obstruction": 5,
   "suspect_high_priority": 2,
   "net_width_below_1.5m": 10,
   "zero_ramp_segments": 4

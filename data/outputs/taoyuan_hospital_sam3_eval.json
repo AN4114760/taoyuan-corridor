@@ -1,0 +1,24 @@
+{
+  "pixel_m": 0.271,
+  "reach_m": 8.0,
+  "max_width_m": 8.0,
+  "area_m2": {
+    "raw": 59538,
+    "near_road": 21737,
+    "filtered": 15727
+  },
+  "raw": {
+    "precision": 0.028,
+    "recall": 0.145,
+    "iou": 0.024
+  },
+  "filtered": {
+    "precision": 0.096,
+    "recall": 0.134,
+    "iou": 0.059
+  },
+  "filtered_tol1.5m": {
+    "precision": 0.128,
+    "recall": 0.182
+  }
+}

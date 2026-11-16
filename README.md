@@ -23,7 +23,9 @@
 # 3a. 樹冠備案（SAM 3 權限下來前）
 .venv/bin/python module1/canopy_exg.py
 # 3b. SAM 3 分割：把 data/processed/taoyuan_hospital_ortho_z19.tif 上傳到 Google Drive 的 taoyuan-corridor/，
-#     在 Colab 開 module1/sam3_segment.ipynb 執行，下載 *_mask_*.tif 回 data/processed/
+#     在 Colab 開 module1/sam3_segment.ipynb 執行（T4、全程 float32，約 25 分鐘），下載 *_mask_*.tif 回 data/processed/
+#     後處理＋與國土管理署人行道比對：
+.venv/bin/python module1/sam3_postprocess.py
 # 4. 廊道指標
 .venv/bin/python module1/corridor_metrics.py                 # SAM 3 人行道＋SAM 3 樹冠
 .venv/bin/python module1/corridor_metrics.py --canopy exg    # SAM 3 人行道＋ExG 樹冠
@@ -45,9 +47,17 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/preview.html?i
 已下載到 `data/raw/moi_sidewalk/`。
 ```bash
 .venv/bin/python module1/moi_sidewalk_metrics.py                 # 每筆人行道的綠蔽交集率（樹冠：ExG）
-.venv/bin/python module1/moi_sidewalk_metrics.py --canopy sam3   # SAM 3 樹冠下來後
+.venv/bin/python module1/moi_sidewalk_metrics.py --canopy sam3   # SAM 3 樹冠（正式版）
 ```
 輸出 `data/outputs/<id>_sidewalk_metrics_moi.geojson/.csv`、`_summary_moi.json`、`_preview_moi.jpg`。
+
+## SAM 3 評估結果（2026-11-16，桃園醫院）
+- 提示詞實測（中央小圖）："sidewalk" 最高僅 0.37 分、"footpath" 幾乎抓不到；改用 "pavement"（鋪面）扣掉 "road"／"zebra crossing"；樹冠用 "trees"、灌木草地用 "vegetation" 扣掉 trees
+- **樹冠**：分割乾淨、含陰影中的樹（ExG 會漏），採用為正式樹冠來源 → 加權綠蔽交集率 0.201（ExG 為 0.161）
+- **人行道**：與國土管理署實測面比對 recall 13–18%、precision 3–13%（`data/outputs/<id>_sam3_eval.json`）。
+  SAM 3 的 "road" 把人行道一起歸進車道（pavement 與 road 重疊 70%），樹冠下的人行道從空中也看不到
+  → 人行道以國土管理署實測面為主；空拍無法判定的路段交給模組二（車行相機）與模組三（實走）
+- Colab 注意事項：SAM 3 會把 numpy 降到 1.26（rasterio 固定 1.4.3、contourpy 1.3.3）；T4 不支援 bfloat16 硬體加速，notebook 改寫 ViT MLP 為 float32；`Sam3Processor` 內建 0.5 門檻需改成參數值
 
 ## 嚴重程度地圖（map.html）
 導航風格：淡灰 OSM 底圖＋人行道依嚴重程度上色（綠正常／黃需注意／紅嚴重／深灰主要道路無人行道），加上設施圖標。
