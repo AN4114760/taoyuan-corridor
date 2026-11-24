@@ -59,6 +59,14 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/preview.html?i
   → 人行道以國土管理署實測面為主；空拍無法判定的路段交給模組二（車行相機）與模組三（實走）
 - Colab 注意事項：SAM 3 會把 numpy 降到 1.26（rasterio 固定 1.4.3、contourpy 1.3.3）；T4 不支援 bfloat16 硬體加速，notebook 改寫 ViT MLP 為 float32；`Sam3Processor` 內建 0.5 門檻需改成參數值
 
+## 給隊友：開地圖與資料格式
+不需要安裝 Python 套件：
+```bash
+git clone https://github.com/AN4114760/taoyuan-corridor.git && cd taoyuan-corridor
+python3 -m http.server 8000   # 開 http://localhost:8000/module1/map.html?id=taoyuan_hospital
+```
+GeoJSON 欄位、嚴重程度判定、`seg_id` 路段代碼與模組二～四的對接方式見 **[docs/map-data-format.md](docs/map-data-format.md)**。
+
 ## 嚴重程度地圖（map.html）
 導航風格：淡灰 OSM 底圖＋人行道依嚴重程度上色（綠正常／黃需注意／紅嚴重／深灰主要道路無人行道），加上設施圖標。
 ```bash

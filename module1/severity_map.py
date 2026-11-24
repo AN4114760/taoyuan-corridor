@@ -7,7 +7,7 @@
   missing 深灰 主要道路（primary/secondary/tertiary）該側 20m 內沒有實測人行道
 
 輸入：data/outputs/<id>_sidewalk_metrics_moi.geojson（moi_sidewalk_metrics.py 產出）、data/raw/<id>_osm_roads.geojson
-輸出：data/outputs/<id>_severity.geojson（WGS84；人行道為 Polygon、缺人行道為 LineString，屬性 level/kind/label）
+輸出：data/outputs/<id>_severity.geojson（WGS84；人行道為 Polygon、缺人行道為 LineString，屬性 seg_id/level/kind/label；格式見 docs/map-data-format.md）
 
 用法：.venv/bin/python module1/severity_map.py [--id taoyuan_hospital]
 """
@@ -79,7 +79,7 @@ def main():
             "kind": "sidewalk", "level": lv, "label": reason_of(p, lv, cfg),
             "road_name": p.get("road_name"), "from": p.get("from"), "to": p.get("to"),
             "width_m": p.get("width_m"), "net_width_m": p.get("net_width_m"), "ramps": p.get("ramps"),
-            "canopy_overlap_ratio": p.get("canopy_overlap_ratio"), "id": p.get("sw_id")}})
+            "canopy_overlap_ratio": p.get("canopy_overlap_ratio"), "id": p.get("sw_id"), "seg_id": p.get("sw_id")}})
     sw_union = unary_union(sw_geoms).buffer(0.5) if sw_geoms else None
 
     n_missing = 0
@@ -106,6 +106,7 @@ def main():
                         continue
                     n_missing += 1
                     feats.append({"type": "Feature", "geometry": mapping(tf(line, T_3826_4326)), "properties": {
+                        "seg_id": f"{args.id}-ms{n_missing - 1:03d}",
                         "kind": "missing", "level": "missing", "label": "主要道路此側無實測人行道",
                         "road_name": rp.get("name"), "side": sname, "highway": rp.get("highway")}})
 
