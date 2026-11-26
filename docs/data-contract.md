@@ -9,7 +9,7 @@
 
 | 檔案 | 用途 |
 |---|---|
-| `data/outputs/taoyuan_hospital_severity.geojson` | 91 個路段的位置、`seg_id` 與嚴重程度。**所有模組以 `seg_id` 對應路段** |
+| `data/outputs/taoyuan_hospital_severity.geojson` | 79 個路段的位置、`seg_id` 與嚴重程度。**所有模組以 `seg_id` 對應路段** |
 | `data/outputs/taoyuan_hospital_sidewalk_metrics_moi.csv` | 44 筆人行道的寬度、淨寬、斜坡數、綠蔽交集率 |
 | `data/outputs/taoyuan_hospital_features.geojson` | 公車站、醫院、行穿線等設施點位（全部「待現勘」） |
 | `module1/map.html` | 嚴重程度地圖，可用來規劃路線、截圖 |
@@ -23,7 +23,7 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/map.html?id=ta
 
 ### 路段代碼 `seg_id`
 - 實測人行道：`taoyuan_hospital-sw000` ～ `taoyuan_hospital-sw043`（44 段）
-- 主要道路無人行道：`taoyuan_hospital-ms000` ～ `taoyuan_hospital-ms046`（47 段）
+- 主要道路無人行道：`taoyuan_hospital-ms000` ～ `taoyuan_hospital-ms034`（35 段；分隔島那一側與橫跨路口的不列入）
 - 在地圖上點路段，或打開 `severity.geojson` 查屬性 `seg_id`
 
 ### 類別代碼（模組二偵測、模組三 issues、App 回報共用）
@@ -65,7 +65,7 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/map.html?id=ta
 ## 模組二：車行影像＋VLM
 
 ### 從模組一拿到的
-- **優先拍攝路段**：`level` 為 `severe`（嚴重 5 段）、`caution`（需注意 8 段）、`missing`（主要道路無人行道 47 段）
+- **優先拍攝路段**：`level` 為 `severe`（嚴重 5 段）、`caution`（需注意 8 段）、`missing`（主要道路無人行道 35 段）
 - **要確認的設施**：`features.geojson` 的公車站 15 處、行穿線 1 處（是否存在、有無坡道）
 - **VLM 要辨識的類別**：上面的問題類別＋設施類別
 

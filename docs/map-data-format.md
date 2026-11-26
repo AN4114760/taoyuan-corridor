@@ -54,10 +54,11 @@ python3 -m http.server 8000
 | width_m | number | 人行道寬度（m） |
 | net_width_m | number | 淨寬（扣除設施帶，m） |
 | ramps | number | 路緣斜坡數 |
-| canopy_overlap_ratio | 0–1 | **綠蔽交集率**＝樹冠（SAM 3）∩ 人行道 ÷ 人行道面積 |
+| canopy_overlap_ratio | 0–1 | **綠蔽交集率**＝樹冠（SAM 3）∩ 人行道 ÷ 人行道面積。道路分隔島上的綠化不計入 |
 | id | string | 同 seg_id（舊欄位，保留相容） |
 
-**`kind: "missing"`**：主要道路該側 20m 內沒有實測人行道（LineString，畫在道路該側 6m），47 筆
+**`kind: "missing"`**：主要道路該側 20m 內沒有實測人行道（LineString，畫在道路該側 6m），35 筆。
+分隔道路（兩條反向單行道）朝分隔島的那一側不會有人行道，不列入；偏移線橫跨其他主要道路（路口）的也不列入。分隔島範圍由 `module1/medians.py` 計算
 
 | 欄位 | 型別 | 說明 |
 |---|---|---|

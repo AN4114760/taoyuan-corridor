@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 執行情況：各模組資料進度（以 91 個路段的覆蓋率表示），以及「高優先但還沒有資料」的路段
+// 執行情況：各模組資料進度（以全部路段的覆蓋率表示），以及「高優先但還沒有資料」的路段
 import { computed } from 'vue'
 
 import { useData } from '@/stores/data'

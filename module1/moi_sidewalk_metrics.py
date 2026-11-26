@@ -7,6 +7,8 @@
 
 因為是實測的人行道面（含樹冠下的部分），綠蔽交集率可直接計算：
   綠蔽交集率 = 樹冠（＋灌木）像素 ∩ 人行道面 ÷ 人行道面像素
+道路分隔島（medians.py）上的綠化不算人行道樹冠：計算前先從樹冠遮罩扣掉，
+人行道面落在分隔島內的部分（圖資位移）也不列入分母。
 
 用法：
   .venv/bin/python module1/moi_sidewalk_metrics.py                    # 樹冠用 ExG
@@ -31,6 +33,7 @@ from shapely.geometry import Point, mapping, shape
 from shapely.ops import transform
 
 from common import DATA, load_config
+from medians import median_zones
 
 T_4326_3826 = Transformer.from_crs(4326, 3826, always_xy=True)
 T_3826_4326 = Transformer.from_crs(3826, 4326, always_xy=True)
@@ -98,6 +101,16 @@ def main():
             with rasterio.open(shrub) as s:
                 canopy |= s.read(1).astype(bool)
 
+    # 道路分隔島：OSM 同名反向單行道之間的區域。上面的綠化不是人行道樹冠，先扣掉
+    roads = json.loads((DATA / "raw" / f"{args.id}_osm_roads.geojson").read_text())
+    median = median_zones(roads, T_4326_3826)
+    in_median = np.zeros((H, W), dtype=bool)
+    if not median.is_empty:
+        in_median = ~geometry_mask([mapping(tf(median, T_3826_3857))], out_shape=(H, W), transform=T3857, all_touched=False)
+    removed = int((canopy & in_median).sum())
+    canopy &= ~in_median
+    print(f"分隔島 {median.area:,.0f} m²；扣除分隔島上的樹冠 {removed / max(int(canopy.sum()) + removed, 1):.1%}")
+
     cx, cy = T_4326_3826.transform(args.lon, args.lat)
     area = Point(cx, cy).buffer(cfg["buffer_m"])
     sidewalks = load_sidewalks(args.sidewalk, args.id, area)
@@ -109,6 +122,9 @@ def main():
         g3857 = tf(g_clip, T_3826_3857)
         polys_3857.append(g3857)
         inside = ~geometry_mask([mapping(g3857)], out_shape=(H, W), transform=T3857, all_touched=False)
+        n_all = int(inside.sum())
+        median_ratio = float((inside & in_median).sum()) / n_all if n_all else 0.0
+        inside &= ~in_median   # 落在分隔島的部分不列入
         n = int(inside.sum())
         overlap = float(canopy[inside].mean()) if n else None
         width = p.get("SW_WTH")
@@ -128,6 +144,7 @@ def main():
                  "district": p.get("VILL_NAME"), "length_m": p.get("SW_LENG"),
                  "width_m": width, "net_width_m": net, "ramps": p.get("SW_RAMP"),
                  "area_m2": round(g_clip.area, 1), "canopy_overlap_ratio": None if overlap is None else round(overlap, 3),
+                 "median_excluded_ratio": round(median_ratio, 3),
                  "flag": flag, "flags": ",".join(flags), "priority": priority,
                  "sidewalk_source": f"MOI 113H1 (2024-06)" if args.sidewalk == "moi" else "manual (QGIS)",
                  "canopy_source": f"{args.canopy} on NLSC {cfg['orthophoto'].get('photo_year')}"}

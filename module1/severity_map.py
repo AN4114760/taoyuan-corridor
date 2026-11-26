@@ -5,6 +5,7 @@
   caution 黃  需注意：綠蔽交集率 ≥ 0.5 但人行道寬 ≥ 3m，或淨寬 1.2–1.5m
   severe  紅  嚴重：綠蔽交集率 ≥ 0.5 且人行道寬 < 3m，或淨寬 < 1.2m
   missing 深灰 主要道路（primary/secondary/tertiary）該側 20m 內沒有實測人行道
+          （分隔島那一側不會有人行道，不列入；分隔島範圍見 medians.py）
 
 輸入：data/outputs/<id>_sidewalk_metrics_moi.geojson（moi_sidewalk_metrics.py 產出）、data/raw/<id>_osm_roads.geojson
 輸出：data/outputs/<id>_severity.geojson（WGS84；人行道為 Polygon、缺人行道為 LineString，屬性 seg_id/level/kind/label；格式見 docs/map-data-format.md）
@@ -20,6 +21,7 @@ from shapely.geometry import Point, mapping, shape
 from shapely.ops import substring, transform, unary_union
 
 from common import DATA, load_config
+from medians import median_zones
 
 T_4326_3826 = Transformer.from_crs(4326, 3826, always_xy=True)
 T_3826_4326 = Transformer.from_crs(3826, 4326, always_xy=True)
@@ -81,10 +83,16 @@ def main():
             "width_m": p.get("width_m"), "net_width_m": p.get("net_width_m"), "ramps": p.get("ramps"),
             "canopy_overlap_ratio": p.get("canopy_overlap_ratio"), "id": p.get("sw_id"), "seg_id": p.get("sw_id")}})
     sw_union = unary_union(sw_geoms).buffer(0.5) if sw_geoms else None
+    median = median_zones(roads, T_4326_3826).buffer(1.0)
+    skipped_median = skipped_cross = 0
+    major_ways = [(i, rf["properties"].get("name"), tf(shape(rf["geometry"]), T_4326_3826))
+                  for i, rf in enumerate(roads["features"]) if rf["properties"].get("highway") in MAJOR]
 
     n_missing = 0
-    for rf in roads["features"]:
+    for ri, rf in enumerate(roads["features"]):
         rp = rf["properties"]
+        # 其他主要道路的中心線（不含自己與同名的接續路段）：偏移線若橫跨其他主要道路，表示這一側是路口或另一側車道
+        others = [g for i, nm, g in major_ways if i != ri and nm != rp.get("name")]
         if rp.get("highway") not in MAJOR:
             continue
         g = tf(shape(rf["geometry"]), T_4326_3826).intersection(area)
@@ -104,6 +112,12 @@ def main():
                     line = piece.offset_curve(side * 6.0)   # 畫在道路該側
                     if line.is_empty:
                         continue
+                    if not median.is_empty and line.intersection(median).length > 0.5 * line.length:
+                        skipped_median += 1   # 這一側是分隔島
+                        continue
+                    if any(line.intersects(o) for o in others):
+                        skipped_cross += 1    # 橫跨其他主要道路（路口、分隔島尾端）
+                        continue
                     n_missing += 1
                     feats.append({"type": "Feature", "geometry": mapping(tf(line, T_3826_4326)), "properties": {
                         "seg_id": f"{args.id}-ms{n_missing - 1:03d}",
@@ -115,7 +129,7 @@ def main():
             "photo_year": cfg["orthophoto"].get("photo_year"), "sidewalk_source": "國土管理署 113 上半年"}
     out.write_text(json.dumps({"type": "FeatureCollection", "metadata": meta, "features": feats}, ensure_ascii=False))
     counts = {lv: sum(f["properties"]["level"] == lv for f in feats) for lv in ("good", "caution", "severe", "missing")}
-    print(counts, "→", out)
+    print(counts, f"（略過分隔島側 {skipped_median} 段、橫跨其他主要道路 {skipped_cross} 段）→", out)
 
 
 if __name__ == "__main__":
