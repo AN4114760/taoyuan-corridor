@@ -1,0 +1,3 @@
+sessionId,ts,lat,lng,heading,seg_id,label,confidence,model,framePath
+drive-20261128-01,2026-11-28T10:15:30+08:00,24.97705,121.26880,62,taoyuan_hospital-sw009,tree-obstruction,0.82,gemini-2.5-flash,drive-20261128-01/000123.jpg
+drive-20261128-01,2026-11-28T10:15:41+08:00,24.97731,121.26934,64,,access-ramp,0.71,gemini-2.5-flash,drive-20261128-01/000134.jpg
