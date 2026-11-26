@@ -154,7 +154,7 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/map.html?id=ta
 |---|---|
 | 模組一路段、設施、地圖 | ✅ 已完成（在 repo） |
 | 本文件與 CSV 範本 | ✅ |
-| 地端後台＋志工回饋頁（`app/`，見 `app/README.md`） | ✅ 可以使用，目前是假資料 |
+| 地端後台＋志工回饋頁（`backstage/`，見 `backstage/README.md`） | ✅ 可以使用，目前是假資料 |
 | 模組四計算程式 `module4/integrate.py` | ✅ 可以執行，等模組二、三的真實資料 |
 
 **交件方式**：照範本填 CSV，放進 repo 的 `data/module2/`、`data/module3/`（檔名例如 `drive-20261128-01.csv`），commit 後推上 GitHub。後台按「重新整理」就會讀進來，格式錯誤的列會列在「執行情況 → 交件檔案」。檔名不要用 `demo-` 開頭，那是保留給假資料的；

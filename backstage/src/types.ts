@@ -63,7 +63,7 @@ export interface Anomaly {
   photoCount: number          // 照片另以 /api/feedback/:id/photo/:a/:p 取得（JSON 內為 base64）
 }
 
-/** 志工回饋：行經路段感受＋有異狀的照片（data/backend/feedback.json） */
+/** 志工回饋：行經路段感受＋有異狀的照片（backstage/data/feedback.json） */
 export interface Feedback {
   id: string
   createdAt: string           // ISO 8601

@@ -44,7 +44,7 @@ const hasDemo = computed(() => data.feedback.some((f) => f.demo) || data.drive.s
   <div v-if="!authed" class="gate">
     <form class="card" @submit.prevent="login(pinInput)">
       <h2>無障礙廊道・後台</h2>
-      <p class="muted">請輸入 PIN（設定在 app/.env.local 的 ADMIN_PIN；沒設定時看伺服器啟動訊息）</p>
+      <p class="muted">請輸入 PIN（設定在 backstage/.env.local，格式 ADMIN_PIN=數字；沒設定時看伺服器啟動訊息）</p>
       <input v-model="pinInput" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" autofocus />
       <p v-if="pinError" class="err">{{ pinError }}</p>
       <button class="primary" :disabled="!pinInput">進入</button>
@@ -59,7 +59,7 @@ const hasDemo = computed(() => data.feedback.some((f) => f.demo) || data.drive.s
         {{ t.label }}<span v-if="t.to.endsWith('review') && pending" class="badge-n">{{ pending }}</span>
       </RouterLink>
       <span class="grow"></span>
-      <span v-if="hasDemo" class="chip demo" title="含 scripts/seed_demo.py 產生的假資料">含示範資料</span>
+      <span v-if="hasDemo" class="chip demo" title="含 backstage/scripts/seed_demo.py 產生的假資料">含示範資料</span>
       <button :disabled="data.loading" @click="data.loadAdmin()">{{ data.loading ? '載入中…' : '重新整理' }}</button>
       <button @click="logout">登出</button>
     </nav>

@@ -4,7 +4,7 @@
   data/outputs/<id>_severity.geojson     模組一路段（seg_id、level）
   data/module2/*.csv                     模組二車行偵測（docs/data-contract.md 的 drive_detections）
   data/module3/*.csv                     模組三遊戲／實走評分（walk_ratings）
-  data/backend/feedback.json             志工回饋（地端後台）
+  backstage/data/feedback.json           志工回饋（地端後台）
 輸出
   data/outputs/<id>_integrated.geojson   路段幾何＋composite_score、grade、components、counts
   data/outputs/<id>_priorities.csv       需改善路段清單（分數由高到低）
@@ -56,7 +56,7 @@ def score_segment(level: str, confirmed_anomalies: int, m2_detections: int, safe
     return {"composite_score": total, "grade": grade_of(total, w["grades"]), "components": comp}
 
 
-# ---------------------------------------------------------------- 路段配對（與 app/src/lib/geo.ts 相同規則）
+# ---------------------------------------------------------------- 路段配對（與 backstage/src/lib/geo.ts 相同規則）
 class Matcher:
     def __init__(self, features: list[dict], center: tuple[float, float]):
         lng0, lat0 = center
@@ -143,7 +143,7 @@ def integrate(site: str, root: Path = ROOT) -> dict:
             continue
         safety[sid].append(s)
 
-    fb_path = root / "data/backend/feedback.json"
+    fb_path = root / "backstage/data/feedback.json"
     feedback = json.loads(fb_path.read_text(encoding="utf-8")) if fb_path.exists() else []
     for fb in feedback:
         sid = fb.get("segId")

@@ -49,7 +49,7 @@ class PipelineTest(unittest.TestCase):
         (self.tmp / "data/outputs").mkdir(parents=True)
         (self.tmp / "data/module2").mkdir(parents=True)
         (self.tmp / "data/module3").mkdir(parents=True)
-        (self.tmp / "data/backend").mkdir(parents=True)
+        (self.tmp / "backstage/data").mkdir(parents=True)
         shutil.copy(ROOT / "config.yaml", self.tmp / "config.yaml")
         shutil.copy(ROOT / "data/outputs/taoyuan_hospital_severity.geojson", self.tmp / "data/outputs")
 
@@ -75,7 +75,7 @@ class PipelineTest(unittest.TestCase):
             {"segId": sid, "safety": 2, "status": "new", "anomalies": [{"category": "too-narrow"}]},
             {"segId": sid, "safety": 5, "status": "rejected", "anomalies": [{"category": "other"}]},
         ]
-        (self.tmp / "data/backend/feedback.json").write_text(json.dumps(fb))
+        (self.tmp / "backstage/data/feedback.json").write_text(json.dumps(fb))
         integrate("taoyuan_hospital", self.tmp)
         out = json.loads((self.tmp / "data/outputs/taoyuan_hospital_integrated.geojson").read_text())
         p = next(f["properties"] for f in out["features"] if f["properties"]["seg_id"] == sid)

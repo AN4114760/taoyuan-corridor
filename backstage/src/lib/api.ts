@@ -1,4 +1,4 @@
-// 呼叫地端伺服器（app/server.mjs）。後台 API 需要 PIN，存在 sessionStorage（關掉分頁就要重新輸入）。
+// 呼叫地端伺服器（backstage/server.mjs）。後台 API 需要 PIN，存在 sessionStorage（關掉分頁就要重新輸入）。
 const PIN_KEY = 'adminPin'
 
 export function getPin(): string {

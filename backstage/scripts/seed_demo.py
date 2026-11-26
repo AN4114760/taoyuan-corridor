@@ -1,12 +1,12 @@
 """產生後台示範用的假資料（全部標記 demo），讓地圖、執行情況、複查、評級在隊友交件前就能操作。
 
-  .venv/bin/python scripts/seed_demo.py           # 先清掉舊的假資料再重新產生
-  .venv/bin/python scripts/seed_demo.py --purge   # 只清除假資料
+  .venv/bin/python backstage/scripts/seed_demo.py           # 先清掉舊的假資料再重新產生
+  .venv/bin/python backstage/scripts/seed_demo.py --purge   # 只清除假資料
 
 產生：
   data/module2/demo-drive.csv     模組二車行偵測 60 筆
   data/module3/demo-walk.csv      模組三評分 40 筆
-  data/backend/feedback.json      志工回饋 40 筆（demo: true，其中約 15 筆附示範照片）
+  backstage/data/feedback.json    志工回饋 40 筆（demo: true，其中約 15 筆附示範照片）
 嚴重或需注意的路段會分到較多問題與較低安全感，讓示範結果有層次；真實資料不受影響。
 執行前請先停掉後台伺服器，避免同時寫入 feedback.json。
 """
@@ -26,11 +26,11 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 from shapely.geometry import shape
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SITE = "taoyuan_hospital"
 TZ = timezone(timedelta(hours=8))
 M2, M3 = ROOT / "data/module2/demo-drive.csv", ROOT / "data/module3/demo-walk.csv"
-FB = ROOT / "data/backend/feedback.json"
+FB = ROOT / "backstage/data/feedback.json"
 
 BAD = {"good": 0.0, "caution": 1.0, "severe": 2.0, "missing": 1.5}
 PROBLEMS = ["tree-obstruction", "parked-vehicle", "broken-surface", "no-ramp", "tactile-broken", "too-narrow"]

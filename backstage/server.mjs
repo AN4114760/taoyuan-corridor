@@ -4,7 +4,7 @@
 // 資料：
 //   data/outputs/<site>_severity.geojson、_features.geojson   模組一（唯讀）
 //   data/module2/*.csv、data/module3/*.csv                      隊友交件（唯讀，前端依 data-contract 驗證）
-//   data/backend/feedback.json                                  志工回饋（含 base64 照片）
+//   backstage/data/feedback.json                                志工回饋（含 base64 照片，不進 git）
 //   data/outputs/<site>_integrated.geojson、_priorities.csv     module4/integrate.py 輸出
 import { execFile } from 'node:child_process'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
@@ -44,8 +44,8 @@ export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital
     features: join(root, 'data/outputs', `${site}_features.geojson`),
     integrated: join(root, 'data/outputs', `${site}_integrated.geojson`),
     priorities: join(root, 'data/outputs', `${site}_priorities.csv`),
-    backend: join(root, 'data/backend'),
-    feedback: join(root, 'data/backend/feedback.json'),
+    backend: join(root, 'backstage/data'),
+    feedback: join(root, 'backstage/data/feedback.json'),
     module: (n) => join(root, `data/module${n}`),
   }
   python ??= [join(root, '.venv/bin/python'), 'python3'].find((p) => p === 'python3' || existsSync(p))
@@ -241,7 +241,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   let pin = env.ADMIN_PIN
   if (!pin) {
     pin = String(randomBytes(4).readUInt32BE() % 1_000_000).padStart(6, '0')
-    console.warn(`⚠ app/.env.local 沒有設定 ADMIN_PIN，本次後台 PIN：${pin}`)
+    console.warn(`⚠ backstage/.env.local 沒有設定 ADMIN_PIN（格式：ADMIN_PIN=數字），本次後台 PIN：${pin}`)
   }
   const port = Number(env.PORT ?? 8787)
   createApp({ pin, site: env.VITE_SITE_ID ?? 'taoyuan_hospital' }).listen(port, '0.0.0.0', () => {
