@@ -35,6 +35,8 @@ const TABS = [
   { to: '/admin/review', label: '複查情況' },
   { to: '/admin/voices', label: '志工回饋' },
   { to: '/admin/priorities', label: '需改善路段' },
+  { to: '/admin/videos', label: '影片' },
+  { to: '/admin/accounts', label: '帳號' },
 ]
 const pending = computed(() => data.feedback.filter((f) => f.status === 'new' && f.anomalies.length).length)
 const hasDemo = computed(() => data.feedback.some((f) => f.demo) || data.drive.some((d) => d.demo) || data.walks.some((w) => w.demo))

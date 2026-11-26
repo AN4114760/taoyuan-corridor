@@ -8,10 +8,12 @@
     "server": "node server.mjs",
     "start": "npm run build && node server.mjs",
     "build": "vue-tsc --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cert": "node scripts/make_cert.mjs"
   },
   "dependencies": {
     "@maplibre/maplibre-gl-leaflet": "0.0.22",
+    "firebase": "12.17.1",
     "leaflet": "1.9.4",
     "leaflet.markercluster": "1.5.3",
     "maplibre-gl": "4.7.1",

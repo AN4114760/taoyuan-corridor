@@ -80,6 +80,29 @@ export interface Feedback {
   reviewNote?: string
   reviewedAt?: string
   demo?: boolean
+  /** App 帳號（舊資料、假資料沒有） */
+  userId?: string
+  /** 開始走這段路時的定位檢查（需在路段 50m 內） */
+  walk?: { startedAt: string; startLat: number; startLng: number; startDistanceM: number; startAccuracyM?: number }
+}
+
+/** App 帳號身分：只有後台能改。0 待開通、1 志工回饋、2 錄影、3 志工＋錄影 */
+export type Role = 0 | 1 | 2 | 3
+export const ROLE_LABEL: Record<Role, string> = { 0: '待開通', 1: '志工', 2: '錄影人員', 3: '志工＋錄影' }
+export const canVolunteer = (r?: Role) => r === 1 || r === 3
+export const canRecord = (r?: Role) => r === 2 || r === 3
+
+/** App 帳號（backstage/data/users.json；不含密碼） */
+export interface AppUser {
+  id: string
+  phone: string
+  name: string
+  participantGroup: ParticipantGroup
+  role: Role
+  createdAt: string
+  updatedAt: string
+  feedbackCount?: number      // 後台列表才有
+  videoCount?: number
 }
 
 /** module4/integrate.py 寫進 integrated.geojson 的每段結果 */
@@ -127,6 +150,28 @@ export interface WalkRating {
   issues: string[]            // Category
   ts: string
   demo?: boolean
+}
+
+/** 錄影上傳紀錄（backstage/data/videos.json；影片檔本身在 Firebase Storage） */
+export const VIDEO_PROCESSING = {
+  pending: '等待處理', processing: '處理中', processed: '已處理', unusable: '無法使用',
+} as const
+export type VideoProcessing = keyof typeof VIDEO_PROCESSING
+
+export interface Video {
+  id: string
+  userId: string
+  recorderName: string
+  fileName: string
+  sizeBytes: number
+  contentType: string
+  note?: string
+  recordedAt: string          // 拍攝時間（取檔案修改時間），ISO 8601
+  uploadedAt: string          // ISO 8601
+  storagePath: string         // Firebase Storage 路徑
+  downloadUrl: string         // Firebase 下載網址（播放用）
+  processing: VideoProcessing // 後台處理狀態（由管理者更新）
+  adminNote?: string
 }
 
 export type FeatureType =

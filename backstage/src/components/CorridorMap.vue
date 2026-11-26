@@ -23,7 +23,9 @@ const props = withDefaults(defineProps<{
   picked?: { lat: number; lng: number } | null
   selectedId?: string | null
   siteId: string
-}>(), { features: () => [], colorBy: 'level', overlays: () => [], pickMode: false, picked: null, selectedId: null })
+  /** 使用者目前位置（藍點＋精度圈） */
+  userPos?: { lat: number; lng: number; accuracy: number } | null
+}>(), { features: () => [], colorBy: 'level', overlays: () => [], pickMode: false, picked: null, selectedId: null, userPos: null })
 
 const emit = defineEmits<{
   (e: 'select-segment', id: string | null): void
@@ -38,6 +40,7 @@ let control: L.Control.Layers | null = null
 const featureLayers: L.Layer[] = []
 const overlayLayers = new Map<string, L.LayerGroup>()
 let pickMarker: L.Marker | null = null
+let userLayer: L.LayerGroup | null = null
 let fitted = false
 
 const ICONS = import.meta.glob('../../../icons/*.svg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
@@ -154,6 +157,17 @@ function drawPicked() {
   }
 }
 
+function drawUser() {
+  userLayer?.remove()
+  userLayer = null
+  const u = props.userPos
+  if (!u) return
+  userLayer = L.layerGroup([
+    L.circle([u.lat, u.lng], { radius: u.accuracy, color: '#2563eb', weight: 1, fillColor: '#2563eb', fillOpacity: 0.12, interactive: false }),
+    L.circleMarker([u.lat, u.lng], { radius: 7, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1, interactive: false }),
+  ]).addTo(map)
+}
+
 onMounted(() => {
   map = L.map(el.value!, { zoomControl: false, maxZoom: 20 }).setView([24.9772, 121.2692], 16)
   L.control.zoom({ position: 'bottomright' }).addTo(map)
@@ -165,7 +179,7 @@ onMounted(() => {
     if (props.pickMode) emit('pick', { lat: e.latlng.lat, lng: e.latlng.lng })
     else emit('select-segment', null)
   })
-  drawSegments(); drawFeatures(); drawOverlays(); drawPicked()
+  drawSegments(); drawFeatures(); drawOverlays(); drawPicked(); drawUser()
 })
 onBeforeUnmount(() => map?.remove())
 
@@ -173,6 +187,7 @@ watch(() => [props.segments, props.colorBy, props.selectedId], drawSegments)
 watch(() => props.features, drawFeatures)
 watch(() => props.overlays, drawOverlays, { deep: true })
 watch(() => props.picked, drawPicked)
+watch(() => props.userPos, drawUser)
 
 defineExpose({ flyTo: (lat: number, lng: number, z = 18) => map.flyTo([lat, lng], z) })
 </script>

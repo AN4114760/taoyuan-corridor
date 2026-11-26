@@ -1,0 +1,14 @@
+{
+  "name": "無障礙廊道",
+  "short_name": "無障礙廊道",
+  "description": "醫院、長照機構周邊人行道走訪回饋與錄影上傳",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#1e3a8a",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

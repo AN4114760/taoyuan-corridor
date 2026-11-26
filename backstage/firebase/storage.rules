@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// videos/{uid}/{id}/{file}：錄影人員（Firebase 匿名登入）上傳自己的影片（video/*、< 4GB）。
+// 上傳者本人可讀（App 上傳完要取得下載網址）；下載網址登記在地端伺服器，後台用網址播放。
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /videos/{uid}/{id}/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 4 * 1024 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+    }
+
+    match /{all=**} {
+      allow read, write: if false;
+    }
+  }
+}

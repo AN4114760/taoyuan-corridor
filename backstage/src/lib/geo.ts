@@ -69,6 +69,11 @@ function geomOf(s: Matchable): Geometry {
   return g
 }
 
+/** 點到某個路段的距離（公尺）：開始走訪前的定位檢查用 */
+export function distanceToSegment(lat: number, lng: number, s: Matchable): number {
+  return distanceToGeometry(lat, lng, geomOf(s))
+}
+
 /**
  * 回傳 maxDist 公尺內最近的路段 id；找不到回傳 null。
  * 實測人行道（sidewalk）優先：兩者距離相差不到 3m 時選人行道，避免點到「無人行道」的偏移線。
