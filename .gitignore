@@ -10,3 +10,9 @@ data/processed/*
 !data/processed/manual_sidewalk_template.geojson
 *.tif
 *.tiff
+
+# 地端後台：真實志工回饋含照片與位置，不進 git（假資料用 scripts/seed_demo.py 產生）
+data/backend/
+# 模組四輸出，隨回饋與審核變動，用 module4/integrate.py 重新產生
+data/outputs/*_integrated.geojson
+data/outputs/*_priorities.csv

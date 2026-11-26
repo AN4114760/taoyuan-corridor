@@ -67,6 +67,11 @@ python3 -m http.server 8000   # 開 http://localhost:8000/module1/map.html?id=ta
 ```
 GeoJSON 欄位、嚴重程度判定、`seg_id` 路段代碼與模組二～四的對接方式見 **[docs/map-data-format.md](docs/map-data-format.md)**。
 
+## 地端後台與志工回饋（app/）
+
+`cd app && npm install && npm start`，接著開 `http://localhost:8787/admin`。後台有地圖、執行情況、複查情況、志工回饋、需改善路段五個分頁；志工用手機開 `/feedback` 回報。
+模組四綜合評級：`.venv/bin/python module4/integrate.py`。詳見 [app/README.md](app/README.md)。
+
 ## 嚴重程度地圖（map.html）
 導航風格：淡灰 OSM 底圖＋人行道依嚴重程度上色（綠正常／黃需注意／紅嚴重／深灰主要道路無人行道），加上設施圖標。
 ```bash

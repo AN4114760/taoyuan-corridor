@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// reports/{uid}/{reportId}/{n}.jpg：回報照片，本人上傳（< 5MB、image/*），本人與 admin 可讀
+// drive/{sessionId}/{frame}：模組二車行影格，admin 上傳，已登入可讀
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() { return request.auth != null && request.auth.token.admin == true; }
+
+    match /reports/{uid}/{reportId}/{file} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+
+    match /drive/{sessionId}/{file} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /{all=**} {
+      allow read, write: if false;
+    }
+  }
+}

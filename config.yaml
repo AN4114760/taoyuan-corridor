@@ -24,3 +24,16 @@ metrics:
   side_offset_m: [3, 15] # 從道路中心線往外找人行道的距離範圍
   overlap_flag: 0.5      # 綠蔽交集率 ≥ 此值 → 疑似阻礙、優先檢核
   narrow_width_m: 3.0    # 人行道寬 < 3m 時提高優先權（市府手冊：未達 3m 不植行道樹）
+
+# 模組四綜合評分（module4/integrate.py；說明見 docs/data-contract.md）
+integration:
+  level_points: {good: 0, caution: 1, severe: 2, missing: 2}
+  anomaly_point: 1.0       # 志工回饋經「確認」的每筆異狀
+  anomaly_cap: 3
+  m2_point: 0.5            # 模組二每筆問題偵測（confidence ≥ m2_min_confidence）
+  m2_cap: 2
+  m2_min_confidence: 0.5
+  safety_divisor: 2        # (5 − 安全感平均) ÷ 此值
+  safety_cap: 2
+  match_radius_m: 25       # 沒有 seg_id 時，配對此距離內最近的路段
+  grades: {A: 1.0, B: 2.0, C: 3.5}   # < A → A；< B → B；< C → C；其餘 D

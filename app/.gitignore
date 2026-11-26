@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env.local
+*.log
+.firebase/
+ios/App/App/public/
+android/app/src/main/assets/public/

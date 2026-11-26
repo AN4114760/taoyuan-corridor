@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// 無障礙廊道後台 Firestore 規則（預設拒絕）。
+// - segments／features：模組一產出，公開可讀，只有 admin（custom claim admin=true，scripts/set_admin.py 設定）能寫
+// - reports：App 使用者回報。本人建立與讀取；建立時 status 必須為 new、不得自帶 demo／審核欄位；
+//   只有 admin 能更新審核欄位
+// - drive_detections（模組二）／walk_ratings（模組三）：已登入可讀，只有 admin（後台匯入頁）能寫
+// Python 端（upload_segments.py、seed_demo.py、module4/integrate.py）用 Admin SDK，不受本規則限制。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.admin == true; }
+
+    function categories() {
+      return ['tree-obstruction', 'parked-vehicle', 'broken-surface', 'no-ramp', 'tactile-broken',
+              'too-narrow', 'no-sidewalk', 'pickup-problem', 'other'];
+    }
+    function statuses() { return ['new', 'confirmed', 'rejected', 'forwarded', 'resolved']; }
+
+    function validNewReport() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['uid', 'createdAt', 'lat', 'lng', 'category', 'status', 'photoPaths'])
+        && d.keys().hasOnly(['uid', 'createdAt', 'lat', 'lng', 'accuracy_m', 'segId', 'category',
+                             'description', 'photoPaths', 'status', 'facility_id', 'locationSource'])
+        && d.uid == request.auth.uid
+        && d.status == 'new'
+        && d.createdAt == request.time
+        && d.category in categories()
+        && d.lat is number && d.lat > 24.5 && d.lat < 25.2
+        && d.lng is number && d.lng > 120.9 && d.lng < 121.6
+        && d.photoPaths is list && d.photoPaths.size() <= 3
+        && (!('description' in d) || (d.description is string && d.description.size() <= 1000))
+        && (!('segId' in d) || d.segId == null || d.segId is string);
+    }
+
+    match /segments/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /features/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /reports/{id} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() && validNewReport();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'reviewNote', 'reviewedBy', 'reviewedAt', 'segId'])
+        && request.resource.data.status in statuses();
+      allow delete: if isAdmin();
+    }
+
+    match /drive_detections/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /walk_ratings/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
