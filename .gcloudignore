@@ -5,7 +5,7 @@
 **/node_modules
 **/__pycache__
 docs
-icons
+/icons
 module1
 data/raw
 data/tiles
@@ -17,5 +17,6 @@ backstage/data
 backstage/.cert
 backstage/.env*
 backstage/_firebase-later
+backstage/ios
 *.tif
 *.tiff
