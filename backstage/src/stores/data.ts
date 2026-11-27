@@ -112,11 +112,13 @@ export const useData = defineStore('data', () => {
     return nearestSegment(lat, lng, segments.value)
   }
 
+  /** App 送出志工回饋（需登入；walk＝開始走訪時的定位檢查） */
   async function submitFeedback(input: {
-    volunteerName: string; participantGroup: ParticipantGroup; segId: string; lat: number; lng: number
+    participantGroup: ParticipantGroup; segId: string; lat: number; lng: number
     safety: number; comfort: number; comment: string; anomalies: { category: string; note: string; photos: string[] }[]
+    walk: { startedAt: string; startLat: number; startLng: number; startDistanceM: number; startAccuracyM: number }
   }) {
-    return api<{ id: string }>('feedback', { method: 'POST', body: input })
+    return api<{ id: string }>('feedback', { method: 'POST', body: input, user: true })
   }
 
   async function review(id: string, status: FeedbackStatus, reviewNote: string) {

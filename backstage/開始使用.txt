@@ -1,0 +1,37 @@
+無障礙廊道 App＋後台：開始使用
+================================
+
+只需要先安裝 Node.js 22 以上：https://nodejs.org （下載 LTS 版，一路下一步）
+
+※ 從 GitHub 下載（git clone）的版本沒有打包好的網頁（dist/），第一次請先在 backstage 資料夾執行：
+       npm install
+       npm run build
+  之後就可以照下面的方式直接開啟。拿到的是已打包的壓縮檔則不用。
+
+【直接開啟（不用安裝套件）】
+1. 打開終端機
+   - Windows：在 taoyuan-corridor\backstage 資料夾的空白處按右鍵 →「在終端機中開啟」
+   - Mac：打開「終端機」，輸入 cd 加一個空格，把 backstage 資料夾拖進視窗，按 Enter
+2. 輸入下面這行，按 Enter：
+       node server.mjs
+3. 畫面會顯示網址與「本次後台 PIN」：
+   - App：      http://localhost:8787/
+   - 後台：     http://localhost:8787/admin   （輸入畫面上的 PIN）
+   - 手機（同一個 Wi-Fi）：畫面上 http://192.168.x.x:8787/ 那一行
+4. 要停止：在終端機按 Ctrl + C
+
+【固定後台 PIN】
+在 backstage 資料夾新增檔案 .env.local，內容一行：ADMIN_PIN=你要的數字
+
+【手機要定位（到現場走訪需要）】
+需要 https。在 backstage 資料夾執行：
+       npm run cert
+（Windows 請用 Git Bash 執行）然後重新 node server.mjs，手機改開畫面上的 https://192.168.x.x:8443/
+
+【修改程式後】
+修改 src/ 裡的程式後，需要重新打包：
+       npm install      （第一次，需要網路，約 300MB）
+       npm start        （打包＋啟動）
+
+詳細說明：backstage/README.md
+注意：所有資料（帳號、回饋）會存在 backstage/data/，只留在這台電腦，記得定期備份。

@@ -70,7 +70,7 @@ GeoJSON 欄位、嚴重程度判定、`seg_id` 路段代碼與模組二～四的
 ## 後台（backstage/）
 
 地端後台與志工回饋頁全部放在 [backstage/](backstage/)：`cd backstage && npm install && npm start`，開 `http://localhost:8787/admin`。
-後台有地圖、執行情況、複查情況、志工回饋、需改善路段五個分頁，志工用手機開 `/feedback` 回報。操作說明見 [backstage/README.md](backstage/README.md)。
+志工／錄影人員用手機開 App（`/`，註冊後由後台開通），後台有地圖、執行情況、複查情況、志工回饋、需改善路段、影片、帳號七個分頁。新手請看 [backstage/開始使用.txt](backstage/開始使用.txt)。操作說明見 [backstage/README.md](backstage/README.md)。
 模組四綜合評級的程式在 `module4/integrate.py`。
 
 ## 嚴重程度地圖（map.html）
