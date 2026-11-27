@@ -1,0 +1,21 @@
+# gcloud run deploy --source 上傳時排除（只需要 Dockerfile 用到的檔案）
+.git
+.gitignore
+.venv
+**/node_modules
+**/__pycache__
+docs
+icons
+module1
+data/raw
+data/tiles
+data/processed
+data/outputs/*.jpg
+data/outputs/*_integrated.geojson
+data/outputs/*_priorities.csv
+backstage/data
+backstage/.cert
+backstage/.env*
+backstage/_firebase-later
+*.tif
+*.tiff

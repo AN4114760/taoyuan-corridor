@@ -12,7 +12,7 @@ import { execFile } from 'node:child_process'
 import { createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 import { existsSync, readFileSync } from 'node:fs'
-import { copyFile, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { createServer as createHttpsServer } from 'node:https'
 import { networkInterfaces } from 'node:os'
@@ -33,6 +33,7 @@ const canRecord = (role) => role === 2 || role === 3
 export const WALK_START_RADIUS_M = 50
 const PROCESSING = ['pending', 'processing', 'processed', 'unusable']
 const TOKEN_DAYS = 30
+const BACKUPS_KEPT = 30
 const scryptAsync = promisify(scrypt)
 const MAX_BODY = 8 * 1024 * 1024
 const MAX_PHOTO_CHARS = 900_000 // 約 650KB JPEG；前端壓縮後通常 150–250KB
@@ -52,17 +53,21 @@ class HttpError extends Error {
 }
 
 /** 建立伺服器（測試時可指定 root、pin、secret） */
-export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital', pin, python, dist = join(HERE, 'dist'), tls, secret } = {}) {
+//   dataDir：可寫入的資料夾（雲端部署時指到掛載的 Cloud Storage），outDir：模組四輸出
+export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital', pin, python, dist = join(HERE, 'dist'), tls, secret,
+  dataDir = join(root, 'backstage/data'), outDir = join(root, 'data/outputs') } = {}) {
   const P = {
     severity: join(root, 'data/outputs', `${site}_severity.geojson`),
     features: join(root, 'data/outputs', `${site}_features.geojson`),
-    integrated: join(root, 'data/outputs', `${site}_integrated.geojson`),
-    priorities: join(root, 'data/outputs', `${site}_priorities.csv`),
-    backend: join(root, 'backstage/data'),
-    feedback: join(root, 'backstage/data/feedback.json'),
-    users: join(root, 'backstage/data/users.json'),
-    videos: join(root, 'backstage/data/videos.json'),
-    secret: join(root, 'backstage/data/.session-secret'),
+    integrated: join(outDir, `${site}_integrated.geojson`),
+    priorities: join(outDir, `${site}_priorities.csv`),
+    outDir,
+    backend: dataDir,
+    feedback: join(dataDir, 'feedback.json'),
+    users: join(dataDir, 'users.json'),
+    videos: join(dataDir, 'videos.json'),
+    secret: join(dataDir, '.session-secret'),
+    photos: join(dataDir, 'photos'),
     module: (n) => join(root, `data/module${n}`),
   }
   // Windows 的 venv 在 Scripts/python.exe，且通常沒有 python3 指令
@@ -81,19 +86,41 @@ export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital
   // ---- JSON 資料檔（回饋、帳號、影片）：讀寫序列化，寫入前備份，先寫暫存檔再 rename ----
   let queue = Promise.resolve()
   const serial = (fn) => (queue = queue.then(fn, fn))
+  // 只有這個程式會寫入資料檔，所以讀過一次就留在記憶體（雲端掛載的資料夾每次讀檔都很慢）。
+  // 回傳複本，呼叫端改到一半失敗時不會弄髒快取
+  const cache = new Map()
   async function loadList(file) {
-    try { return JSON.parse(await readFile(file, 'utf8')) } catch (e) { if (e.code === 'ENOENT') return []; throw e }
+    if (!cache.has(file)) {
+      try { cache.set(file, JSON.parse(await readFile(file, 'utf8'))) } catch (e) { if (e.code === 'ENOENT') cache.set(file, []); else throw e }
+    }
+    return structuredClone(cache.get(file))
   }
   async function saveList(file, list) {
-    await mkdir(join(P.backend, '.bak'), { recursive: true })
+    const bak = join(P.backend, '.bak')
+    await mkdir(bak, { recursive: true })
+    const name = file.split(/[/\\]/).pop().replace(/\.json$/, '')
     if (existsSync(file)) {
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-      const name = file.split(/[/\\]/).pop().replace(/\.json$/, '')
-      await copyFile(file, join(P.backend, '.bak', `${name}-${stamp}.json`))
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 23)
+      await copyFile(file, join(bak, `${name}-${stamp}.json`))
+      // 每個檔案只留最近 BACKUPS_KEPT 份備份
+      const old = (await readdir(bak)).filter((f) => f.startsWith(`${name}-`)).sort().slice(0, -BACKUPS_KEPT)
+      await Promise.all(old.map((f) => unlink(join(bak, f)).catch(() => {})))
     }
     const tmp = `${file}.${process.pid}.tmp`
     await writeFile(tmp, JSON.stringify(list, null, 1))
     await rename(tmp, file)
+    cache.set(file, structuredClone(list))
+  }
+  /** 照片另存成檔案，回饋裡只記相對路徑（舊資料的 data URL 照樣能讀） */
+  async function savePhotos(rec) {
+    for (const [i, a] of rec.anomalies.entries()) {
+      for (const [k, uri] of a.photos.entries()) {
+        const rel = `photos/${rec.id}/${i}-${k}.jpg`
+        await mkdir(join(P.photos, rec.id), { recursive: true })
+        await writeFile(join(P.backend, rel), Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64'))
+        a.photos[k] = rel
+      }
+    }
   }
   const loadFeedback = () => loadList(P.feedback)
   const saveFeedback = (list) => saveList(P.feedback, list)
@@ -217,13 +244,15 @@ export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital
     }
   }
 
-  /** 照片（data URL）轉 JPEG 回應 */
-  function sendPhoto(res, f, a, p) {
-    const uri = f?.anomalies[Number(a)]?.photos?.[Number(p)]
-    if (!uri) throw new HttpError(404, '找不到照片')
+  /** 照片轉 JPEG 回應：新資料是 photos/ 底下的檔案，舊資料（含 seed_demo）是 data URL */
+  async function sendPhoto(res, f, a, p) {
+    const ref = f?.anomalies[Number(a)]?.photos?.[Number(p)]
+    if (!ref) throw new HttpError(404, '找不到照片')
+    const jpeg = ref.startsWith('data:') ? Buffer.from(ref.slice(ref.indexOf(',') + 1), 'base64')
+      : await readFile(join(P.backend, ref)).catch(() => { throw new HttpError(404, '找不到照片') })
     res.setHeader('cache-control', 'private, max-age=86400')
     res.writeHead(200, { 'content-type': 'image/jpeg' })
-    return res.end(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64'))
+    return res.end(jpeg)
   }
 
   function isAdmin(req, url) {
@@ -254,7 +283,8 @@ export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital
 
   function runIntegrate() {
     return new Promise((ok, fail) => {
-      execFile(python, [join(root, 'module4/integrate.py'), '--id', site], { cwd: root, timeout: 120_000 }, (err, stdout, stderr) => {
+      const args = [join(root, 'module4/integrate.py'), '--id', site, '--feedback', P.feedback, '--out-dir', P.outDir]
+      execFile(python, args, { cwd: root, timeout: 120_000 }, (err, stdout, stderr) => {
         if (err) fail(new HttpError(500, `integrate.py 失敗：${(stderr || err.message).trim().split('\n').slice(-3).join(' ')}`))
         else ok(stdout.trim())
       })
@@ -394,6 +424,7 @@ export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital
         const user = await requireUser(req, url)
         if (!canVolunteer(user.role)) throw new HttpError(403, '這個帳號沒有志工回饋的權限')
         const rec = await validateFeedback(await body(req), user)
+        await savePhotos(rec)
         await serial(async () => { const list = await loadFeedback(); list.push(rec); await saveFeedback(list) })
         return send(res, 201, { id: rec.id })
       }
@@ -475,7 +506,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     ? { key: readFileSync(join(certDir, 'key.pem')), cert: readFileSync(join(certDir, 'cert.pem')) }
     : null
 
-  createApp({ pin, site }).listen(port, '0.0.0.0', () => {
+  // 雲端部署：DATA_DIR 指到掛載的 Cloud Storage，帳號、回饋、照片與計算結果都放這裡才不會在重新啟動時消失
+  const dirs = env.DATA_DIR ? { dataDir: env.DATA_DIR, outDir: join(env.DATA_DIR, 'outputs') } : {}
+  const app = createApp({ pin, site, ...dirs })
+  app.listen(port, '0.0.0.0', () => {
     console.log(`後台伺服器已啟動（Ctrl+C 停止）\n  本機：http://localhost:${port}/admin`)
     if (!tls) {
       for (const ip of ips) console.log(`  手機（同一個 Wi-Fi）：http://${ip}:${port}/`)
@@ -483,7 +517,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     }
   })
   if (tls) {
-    createApp({ pin, site, tls }).listen(httpsPort, '0.0.0.0', () => {
+    // 與 http 共用同一個 handler（同一份快取與寫入佇列）
+    createHttpsServer(tls, app.listeners('request')[0]).listen(httpsPort, '0.0.0.0', () => {
       for (const ip of ips) console.log(`  手機（同一個 Wi-Fi，可定位）：https://${ip}:${httpsPort}/`)
       console.log('  第一次開啟手機會警告「連線不安全」（自簽憑證），按「進階 → 繼續前往」即可')
     })

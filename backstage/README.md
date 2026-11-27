@@ -212,8 +212,8 @@ App 註冊的帳號，待開通的排最前面（分頁上的數字是待開通�
 |---|---|---|
 | 路段、設施（模組一） | `data/outputs/taoyuan_hospital_severity.geojson`、`_features.geojson` | ✅ |
 | 模組二、三 CSV | `data/module2/`、`data/module3/` | ✅ |
-| **志工回饋（含照片）** | `backstage/data/feedback.json` | ❌ 含照片與位置，只留在伺服器電腦 |
-| 志工回饋備份 | `backstage/data/.bak/`，每次寫入前自動備份 | ❌ |
+| **志工回饋** | `backstage/data/feedback.json`，照片在 `backstage/data/photos/<回饋 id>/` | ❌ 含照片與位置，只留在伺服器電腦 |
+| 資料備份 | `backstage/data/.bak/`，每次寫入前自動備份，每個檔案保留最近 30 份 | ❌ |
 | 綜合評級 | `data/outputs/taoyuan_hospital_integrated.geojson`、`_priorities.csv` | ❌ 隨時可以重新計算 |
 | 後台 PIN、Firebase 設定 | `backstage/.env.local` | ❌ |
 | https 自簽憑證 | `backstage/.cert/` | ❌ |
@@ -223,6 +223,8 @@ App 註冊的帳號，待開通的排最前面（分頁上的數字是待開通�
 | 登入簽章金鑰 | `backstage/data/.session-secret`（第一次啟動自動產生；刪掉會讓所有人重新登入） | ❌ |
 
 `backstage/data/` 要定期備份到隨身碟或雲端硬碟，因為它只存在伺服器那台電腦上。
+
+部署到雲端後（第 7 節），上表 `backstage/data/` 的內容和綜合評級改放在 Cloud Storage bucket `taoyuan-corridor-server-data`（不公開），結構相同；綜合評級在 bucket 的 `outputs/`。
 
 ### 假資料
 ```bash
@@ -235,23 +237,67 @@ App 註冊的帳號，待開通的排最前面（分頁上的數字是待開通�
 
 ---
 
-## 7. 錄影上傳的 Firebase 設定
+## 7. Firebase：錄影上傳與雲端部署
+
+### 錄影上傳
 
 影片太大，不適合放在地端伺服器，所以**只有影片檔**放 Firebase Storage；帳號、上傳紀錄、處理狀態都在地端伺服器。沒設定時上傳頁會顯示「尚未設定」，其他功能照常。
 
 1. [Firebase Console](https://console.firebase.google.com) 建立專案。
 2. **Authentication** → 登入方式：啟用「匿名」（App 上傳時用來通過 Storage 規則，使用者看不到）。
 3. **Storage** → 建立 bucket。新專案要升級 **Blaze 方案**（需綁卡）；免費額度用完後依用量計費，影片很佔空間，建議在 Google Cloud 設定預算提醒。
-4. 專案設定 → 一般 → 新增「網頁應用程式」，把設定值填進 `backstage/.env.local`（欄位見 `.env.example` 的 `VITE_FIREBASE_*`），然後重新 `npm start`。
-5. 部署 Storage 存取規則（`backstage/firebase/storage.rules`）：
+4. 專案設定 → 一般 → 新增「網頁應用程式」，把設定值填進 `backstage/.env.production`（目前已填好 `taoyuan-corridor` 專案；欄位見 `.env.example` 的 `VITE_FIREBASE_*`），然後重新 `npm start`。
+5. 部署 Storage 存取規則（`backstage/firebase/storage.rules`；下面的雲端部署會一起做）：
    ```bash
-   cd backstage/firebase
+   cd backstage
    npx firebase-tools login
-   npx firebase-tools deploy --only storage --project <專案 ID>
+   npx firebase-tools deploy --only storage
    ```
 
 存取規則摘要：只能上傳影片（video/*、< 4GB）到自己的資料夾，只能讀自己上傳的檔案；其他一律拒絕。
 後台播放用的是上傳時取得的下載網址（登記在地端伺服器、後台要 PIN 才看得到），所以不需要另外登入 Firebase。
+
+### 部署到雲端（Firebase Hosting ＋ Cloud Run）
+
+正式網址：**https://taoyuan-corridor.web.app**（App 在 `/app`、後台在 `/admin`）。是正式 https，手機可以直接定位，不需要 `npm run cert`。
+
+| 部分 | 放在哪裡 |
+|---|---|
+| 網頁（`dist/`） | Firebase Hosting |
+| `server.mjs`＋重新計算用的 Python | Cloud Run 服務 `corridor-server`（asia-east1），用根目錄的 `Dockerfile` 建置；Hosting 把 `/api/**` 轉過去 |
+| 帳號、回饋、照片、影片紀錄、綜合評級 | Cloud Storage bucket `taoyuan-corridor-server-data`，掛載在容器的 `/mnt/data`（環境變數 `DATA_DIR`） |
+| 影片檔 | Firebase Storage（同上一小節） |
+
+**更新程式**（之後每次改完程式）：在 `backstage` 用 Git Bash 執行
+```bash
+bash scripts/deploy.sh
+```
+需要先裝好並登入 [Firebase CLI](https://firebase.google.com/docs/cli)（`firebase login`）和 [Google Cloud CLI](https://cloud.google.com/sdk/docs/install)（`gcloud auth login`），帳號要有 `taoyuan-corridor` 專案的權限。
+
+**後台 PIN**：雲端的 PIN 和本機的 `.env.local` 分開，設定在 Cloud Run 的環境變數。更改方式：
+```bash
+gcloud run services update corridor-server --region asia-east1 --update-env-vars ADMIN_PIN=<新的 PIN>
+```
+雲端網址任何人都連得到，PIN 請用 12 位以上。
+
+**第一次部署**（已完成，留給換專案時參考；Git Bash 要先 `export MSYS_NO_PATHCONV=1`，不然 `/mnt/data` 會被改成 Windows 路徑）：
+```bash
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+gcloud storage buckets create gs://<專案 ID>-server-data --location=asia-east1 --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets add-iam-policy-binding gs://<專案 ID>-server-data   --member=serviceAccount:<專案編號>-compute@developer.gserviceaccount.com --role=roles/storage.objectUser
+# 在 repo 根目錄（先在 backstage 執行 npm run build）
+gcloud run deploy corridor-server --source . --region asia-east1 --execution-environment gen2   --max-instances 1 --concurrency 250 --cpu 1 --memory 1Gi --timeout 300 --set-env-vars ADMIN_PIN=<PIN>   --add-volume name=data,type=cloud-storage,bucket=<專案 ID>-server-data --add-volume-mount volume=data,mount-path=/mnt/data   --allow-unauthenticated
+cd backstage && firebase deploy --only hosting,storage
+```
+
+**為什麼最多 1 台（`--max-instances 1`）**：資料是 JSON 檔，寫入要在同一個程式裡排隊；開兩台會互相覆蓋。一台 Cloud Run 可以同時處理 250 個連線，資料讀過一次就留在記憶體，網頁本身由 Hosting 的 CDN 提供，一般走訪活動的人數不會碰到上限。如果同時使用的人多到一台撐不住（例如上千人同時送出），就要把資料改存資料庫（Firestore）才能開多台。
+
+**費用**：Hosting、Cloud Run、Cloud Storage 都有免費額度，一般用量通常不收費；影片檔最佔空間。建議在 [Google Cloud 帳單](https://console.cloud.google.com/billing) 設定預算提醒。沒人使用時 Cloud Run 會關機，第一個人打開時要等幾秒。
+
+**備份雲端資料**：
+```bash
+gcloud storage cp -r gs://taoyuan-corridor-server-data ./backup-$(date +%Y%m%d)
+```
 
 ---
 
@@ -296,10 +342,13 @@ backstage/
 │   ├── stores/data.ts      資料層（之後改接 Firebase 只需要換這個檔案）
 │   └── lib/                geo（最近路段）、importer（CSV 驗證）、image（照片壓縮）、api、
 │                           geolocation（持續定位、導航連結）、firebase／videos（影片上傳到 Storage）
-├── firebase/               影片上傳用的 Storage 規則（firebase deploy）
+├── firebase/               影片上傳用的 Storage 規則
+├── firebase.json、.firebaserc   Firebase Hosting（/api 轉 Cloud Run）＋Storage 規則部署設定
+├── .env.production         Firebase 網頁設定（公開資訊）
 ├── public/                 加到主畫面用的 manifest 與圖示
 ├── scripts/seed_demo.py    假資料
 ├── scripts/make_cert.mjs   https 自簽憑證（npm run cert）
+├── scripts/deploy.sh       部署到雲端（Hosting＋Cloud Run，Dockerfile 在 repo 根目錄）
 ├── tests/unit/             最近路段、CSV 驗證、伺服器 API
 ├── data/                   志工回饋（不進 git）
 └── _firebase-later/        之後整套改接 Firebase 用

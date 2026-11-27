@@ -111,10 +111,12 @@ def read_csvs(folder: Path) -> list[dict]:
 
 
 # ---------------------------------------------------------------- 主流程
-def integrate(site: str, root: Path = ROOT) -> dict:
+def integrate(site: str, root: Path = ROOT, feedback: Path | None = None, out_dir: Path | None = None) -> dict:
     w = yaml.safe_load((root / "config.yaml").read_text(encoding="utf-8"))["integration"]
-    out_dir = root / "data/outputs"
-    sev = json.loads((out_dir / f"{site}_severity.geojson").read_text(encoding="utf-8"))
+    src_dir = root / "data/outputs"
+    out_dir = out_dir or src_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    sev = json.loads((src_dir / f"{site}_severity.geojson").read_text(encoding="utf-8"))
     feats = sev["features"]
     ids = {f["properties"]["seg_id"] for f in feats}
     matcher = Matcher(feats, tuple(sev["metadata"]["center"]))
@@ -143,7 +145,7 @@ def integrate(site: str, root: Path = ROOT) -> dict:
             continue
         safety[sid].append(s)
 
-    fb_path = root / "backstage/data/feedback.json"
+    fb_path = feedback or root / "backstage/data/feedback.json"
     feedback = json.loads(fb_path.read_text(encoding="utf-8")) if fb_path.exists() else []
     for fb in feedback:
         sid = fb.get("segId")
@@ -194,8 +196,10 @@ def integrate(site: str, root: Path = ROOT) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--id", default="taoyuan_hospital")
+    ap.add_argument("--feedback", type=Path, help="志工回饋檔（預設 backstage/data/feedback.json）")
+    ap.add_argument("--out-dir", type=Path, help="輸出資料夾（預設 data/outputs）")
     args = ap.parse_args()
-    meta = integrate(args.id)
+    meta = integrate(args.id, feedback=args.feedback, out_dir=args.out_dir)
     g = meta["grade_counts"]
     print(f"完成：A {g['A']}／B {g['B']}／C {g['C']}／D {g['D']}；略過（無法配對路段）{meta['skipped']}")
 
