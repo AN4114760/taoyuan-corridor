@@ -1,0 +1,10 @@
+{
+  "appId": "tw.taoyuancorridor.app",
+  "appName": "無障礙廊道",
+  "webDir": "dist",
+  "server": {
+    "url": "https://taoyuan-corridor.web.app/app",
+    "allowNavigation": ["taoyuan-corridor.web.app", "*.firebasestorage.app", "firebasestorage.googleapis.com", "*.googleapis.com"]
+  },
+  "ios": { "contentInset": "never" }
+}

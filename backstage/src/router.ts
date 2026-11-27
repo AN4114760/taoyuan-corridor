@@ -18,6 +18,7 @@ export const router = createRouter({
       children: [
         { path: '', redirect: () => useAuth().home },
         { path: 'map', component: () => import('./views/app/MapTab.vue'), meta: { title: '地圖', need: 'volunteer' } },
+        { path: 'scene/:segId', component: () => import('./views/app/WalkScene.vue'), meta: { title: '走路模式', need: 'volunteer', hideTabs: true } },
         { path: 'walk/:segId', component: () => import('./views/app/WalkView.vue'), meta: { title: '走訪回饋', need: 'volunteer', hideTabs: true } },
         { path: 'upload', component: () => import('./views/app/UploadTab.vue'), meta: { title: '錄影上傳', need: 'recorder' } },
         { path: 'records', component: () => import('./views/app/RecordsTab.vue'), meta: { title: '紀錄' } },

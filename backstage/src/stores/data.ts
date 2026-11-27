@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 import { api } from '@/lib/api'
 import { nearestSegment } from '@/lib/geo'
 import { parseText, type RowError, validateDrive, validateWalk } from '@/lib/importer'
-import type { DriveDetection, Feedback, FeedbackStatus, Integrated, MapFeature, ParticipantGroup, Segment, WalkRating } from '@/types'
+import type { DriveDetection, Feedback, FeedbackStatus, Integrated, MapFeature, Moment, ParticipantGroup, Segment, WalkRating } from '@/types'
 
 type Geo = { type: string; coordinates: unknown }
 interface FC<P> { type: 'FeatureCollection'; metadata?: Record<string, unknown>; features: { geometry: Geo; properties: P }[] }
@@ -115,7 +115,9 @@ export const useData = defineStore('data', () => {
   /** App 送出志工回饋（需登入；walk＝開始走訪時的定位檢查） */
   async function submitFeedback(input: {
     participantGroup: ParticipantGroup; segId: string; lat: number; lng: number
-    safety: number; comfort: number; comment: string; anomalies: { category: string; note: string; photos: string[] }[]
+    safety: number; comfort: number; comment: string
+    anomalies: { category: string; note: string; photos: string[]; lat?: number; lng?: number; along?: number; hotspotId?: string }[]
+    moments?: Moment[]
     walk: { startedAt: string; startLat: number; startLng: number; startDistanceM: number; startAccuracyM: number }
   }) {
     return api<{ id: string }>('feedback', { method: 'POST', body: input, user: true })

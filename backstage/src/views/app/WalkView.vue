@@ -3,6 +3,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
+import UiIcon from '@/components/UiIcon.vue'
 import { distanceToSegment } from '@/lib/geo'
 import { formatDistance, useGeo } from '@/lib/geolocation'
 import { compressToDataUrl } from '@/lib/image'
@@ -106,7 +107,7 @@ function giveUp() {
     </header>
 
     <section v-if="done" class="card done">
-      <div class="big-icon">✅</div>
+      <img class="big-icon" src="/frog/happy.png" alt="" />
       <h2>已送出，謝謝！</h2>
       <p class="muted">研究團隊複查後，結果會顯示在「紀錄」。</p>
       <RouterLink to="/app/map" class="btn primary">回地圖找下一段</RouterLink>
@@ -160,7 +161,7 @@ function giveUp() {
               <img :src="src" alt="" />
               <button aria-label="移除照片" @click="removePhoto(a, j)">×</button>
             </div>
-            <label v-if="a.files.length < 3" class="add-photo">📷<br />拍照
+            <label v-if="a.files.length < 3" class="add-photo"><span><UiIcon name="camera" :size="24" /><br />拍照</span>
               <input type="file" accept="image/*" capture="environment" multiple @change="onPhotos(a, $event)" />
             </label>
           </div>
@@ -206,7 +207,7 @@ function giveUp() {
 .big { padding: 13px; font-size: 17px; border-radius: 10px; }
 button.link { border: 0; background: none; color: var(--muted); }
 .done { text-align: center; align-items: center; padding: 32px 16px; }
-.big-icon { font-size: 44px; }
+.big-icon { width: 96px; margin: 0 auto; }
 .btn { display: block; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); text-decoration: none; color: var(--text); text-align: center; }
 .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 </style>

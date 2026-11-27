@@ -210,13 +210,34 @@ export function createApp({ root = resolve(HERE, '..'), site = 'taoyuan_hospital
         errs.push(`異狀 ${i + 1}：照片需為壓縮後的 JPEG`)
       }
       if (a?.note != null && (typeof a.note !== 'string' || a.note.length > 500)) errs.push(`異狀 ${i + 1}：說明最多 500 字`)
+      if (a?.lat != null && !(Number.isFinite(a.lat) && Number.isFinite(a.lng))) errs.push(`異狀 ${i + 1}：位置格式錯誤`)
+    })
+    // 走路模式：沿路各點的主觀安全感（含走到團隊標注點時的回答）
+    const moments = Array.isArray(b.moments) ? b.moments : []
+    if (moments.length > 60) errs.push('沿路感受最多 60 筆')
+    moments.forEach((m, i) => {
+      if (!int15(m?.safety)) errs.push(`感受 ${i + 1}：safety 需為 1–5 整數`)
+      if (!(Number.isFinite(m?.lat) && Number.isFinite(m?.lng) && Number.isFinite(m?.along))) errs.push(`感受 ${i + 1}：缺位置`)
+      if (m?.tags != null && (!Array.isArray(m.tags) || m.tags.length > 8 || m.tags.some((t) => typeof t !== 'string' || t.length > 20))) {
+        errs.push(`感受 ${i + 1}：標籤格式錯誤`)
+      }
+      if (m?.note != null && (typeof m.note !== 'string' || m.note.length > 300)) errs.push(`感受 ${i + 1}：說明最多 300 字`)
+      if (m?.hotspotId != null && (typeof m.hotspotId !== 'string' || m.hotspotId.length > 40)) errs.push(`感受 ${i + 1}：hotspotId 格式錯誤`)
     })
     if (errs.length) throw new HttpError(400, errs.join('；'))
     return {
       id: randomUUID(), createdAt: new Date().toISOString(), userId: user.id, volunteerName: user.name,
       participantGroup: b.participantGroup, segId: b.segId, lat: b.lat, lng: b.lng, safety: b.safety, comfort: b.comfort,
       comment: b.comment?.trim() || undefined,
-      anomalies: anomalies.map((a) => ({ category: a.category, note: a.note?.trim() || undefined, photos: a.photos ?? [] })),
+      anomalies: anomalies.map((a) => ({
+        category: a.category, note: a.note?.trim() || undefined, photos: a.photos ?? [],
+        ...(a.lat != null ? { lat: a.lat, lng: a.lng, along: Number.isFinite(a.along) ? Math.round(a.along * 10) / 10 : undefined } : {}),
+        hotspotId: typeof a.hotspotId === 'string' ? a.hotspotId.slice(0, 40) : undefined,
+      })),
+      moments: moments.length ? moments.map((m) => ({
+        at: typeof m.at === 'string' ? m.at.slice(0, 40) : undefined, lat: m.lat, lng: m.lng, along: Math.round(m.along * 10) / 10,
+        safety: m.safety, tags: m.tags?.length ? m.tags : undefined, note: m.note?.trim() || undefined, hotspotId: m.hotspotId || undefined,
+      })) : undefined,
       walk: {
         startedAt: w.startedAt, startLat: w.startLat, startLng: w.startLng,
         startDistanceM: Math.round(w.startDistanceM * 10) / 10,

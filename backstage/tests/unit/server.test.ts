@@ -86,11 +86,17 @@ describe('帳號', () => {
 describe('志工回饋', () => {
   let id = ''
   it('送出成功，狀態為待審核，記錄帳號與開始走訪的定位', async () => {
-    const r = await call('feedback', { method: 'POST', body: json(good), token })
+    const moments = [{ at: '2026-11-28T08:00:00Z', lat: 24.977, lng: 121.269, along: 42.04, safety: 2, tags: ['要繞過障礙'], hotspotId: 'box-1' }]
+    const r = await call('feedback', { method: 'POST', body: json({ ...good, moments }), token })
     expect(r.status).toBe(201)
     id = (await r.json()).id
     const [mine] = await (await call('me/feedback', { token })).json()
     expect(mine).toMatchObject({ id, userId, volunteerName: '小林', status: 'new', walk: { startDistanceM: 12 } })
+    expect(mine.moments).toEqual([{ ...moments[0], along: 42 }])
+  })
+  it('沿路感受格式錯誤 → 400', async () => {
+    const r = await call('feedback', { method: 'POST', body: json({ ...good, moments: [{ lat: 24.9, lng: 121.2, along: 3, safety: 0, tags: 'x' }] }), token })
+    expect((await r.json()).error).toMatch(/感受 1：safety.*標籤/)
   })
   it('開始位置超過 50m 或沒有定位紀錄 → 400', async () => {
     const far = await call('feedback', { method: 'POST', body: json({ ...good, walk: { ...walk, startDistanceM: 80 } }), token })

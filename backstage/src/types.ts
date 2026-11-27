@@ -61,6 +61,23 @@ export interface Anomaly {
   category: Category
   note?: string
   photoCount: number          // 照片另以 /api/feedback/:id/photo/:a/:p 取得（JSON 內為 base64）
+  /** 走路模式標注的位置（along：距路段起點公尺） */
+  lat?: number
+  lng?: number
+  along?: number
+  hotspotId?: string
+}
+
+/** 走路模式：沿路某一點的主觀安全感（含走到團隊標注點時的回答） */
+export interface Moment {
+  at?: string
+  lat: number
+  lng: number
+  along: number
+  safety: number              // 1–5（5 最安全）
+  tags?: string[]
+  note?: string
+  hotspotId?: string
 }
 
 /** 志工回饋：行經路段感受＋有異狀的照片（backstage/data/feedback.json） */
@@ -76,6 +93,7 @@ export interface Feedback {
   comfort: number             // 1–5
   comment?: string
   anomalies: Anomaly[]
+  moments?: Moment[]
   status: FeedbackStatus
   reviewNote?: string
   reviewedAt?: string

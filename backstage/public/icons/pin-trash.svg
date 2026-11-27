@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 340" width="280" height="340">
+  <ellipse cx="140" cy="316" rx="44" ry="12" fill="#1F2937" fill-opacity="0.28" />
+  <g stroke="#22292F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 140 16 C 72 16, 26 68, 26 130 C 26 202, 114 276, 134 306 C 137 310, 143 310, 146 306 C 166 276, 254 202, 254 130 C 254 68, 208 16, 140 16 Z" fill="#DC2626" />
+    <path d="M 140 19 C 204 19, 251 69, 251 130 C 251 198, 168 270, 144 304 C 142 307, 140 307, 140 307 C 160 272, 232 198, 232 130 C 232 74, 192 26, 140 19 Z" fill="#B91C1C" stroke="none" />
+    <path d="M 52 94 C 62 56, 94 34, 130 30" stroke="#FCA5A5" stroke-width="5" fill="none" />
+    <circle cx="46" cy="110" r="3" fill="#FCA5A5" stroke="none" />
+    <circle cx="140" cy="128" r="84" fill="#FFFFFF" stroke="#22292F" stroke-width="4.5" />
+  </g>
+  <g transform="translate(68, 44) scale(0.6)">
+  
+    <g stroke="#22292F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 124 252 Q 114 182 146 144 Q 160 130 176 130 Q 194 130 206 144 Q 236 182 224 252 Z" fill="#4B5563" />
+      <path d="M 196 138 Q 236 180 222 252 L 202 252 Q 216 190 186 140 Z" fill="#22292F" stroke="none" />
+      <path d="M 144 164 Q 134 188 136 214" stroke="#9CA3AF" stroke-width="3" fill="none" />
+      <path d="M 168 168 Q 176 192 170 220 M 194 160 Q 200 180 212 196" stroke-width="2.5" fill="none" />
+      <path d="M 164 132 Q 176 120 188 132 Z" fill="#4B5563" />
+      <path d="M 158 106 Q 168 96 176 124 Q 164 124 158 106 Z" fill="#4B5563" />
+      <path d="M 194 106 Q 184 96 176 124 Q 188 124 194 106 Z" fill="#4B5563" />
+      <path d="M 18 254 Q 8 186 48 146 Q 68 128 92 128 Q 118 128 136 146 Q 174 186 160 254 Z" fill="#2563EB" />
+      <path d="M 124 138 Q 170 184 158 252 L 132 254 Q 148 200 112 148 Z" fill="#1D4ED8" stroke="none" />
+      <path d="M 42 166 Q 30 192 32 222" stroke="#93C5FD" stroke-width="3" fill="none" />
+      <path d="M 68 170 Q 80 196 70 228 M 112 176 Q 118 198 136 212" stroke-width="2.5" fill="none" />
+      <path d="M 80 130 Q 92 118 104 130 Z" fill="#2563EB" />
+      <path d="M 74 102 Q 86 92 92 122 Q 80 122 74 102 Z" fill="#2563EB" />
+      <path d="M 110 102 Q 98 92 92 122 Q 104 122 110 102 Z" fill="#2563EB" />
+      <path d="M 78 106 Q 82 101 86 104" stroke="#93C5FD" stroke-width="2.5" fill="none" />
+    </g>
+  
+  </g>
+</svg>

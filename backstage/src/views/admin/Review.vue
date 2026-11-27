@@ -2,6 +2,7 @@
 // 複查情況：審核志工回報的異狀（看照片 → 確認／不成立 → 備註）
 import { computed, reactive, ref } from 'vue'
 
+import UiIcon from '@/components/UiIcon.vue'
 import { photoUrl } from '@/lib/api'
 import { useData } from '@/stores/data'
 import { CATEGORIES, type Feedback, FEEDBACK_STATUS, type FeedbackStatus, LEVEL_COLOR, LEVEL_LABEL, PARTICIPANT_GROUPS } from '@/types'
@@ -86,8 +87,8 @@ async function decide(f: Feedback, s: FeedbackStatus) {
       <footer class="row">
         <input :value="noteOf(f)" class="grow" maxlength="500" placeholder="審核備註（例如：現場確認樹穴占 2/3 寬度）"
           @input="notes[f.id] = ($event.target as HTMLInputElement).value" />
-        <button class="ok" :disabled="busy === f.id" @click="decide(f, 'confirmed')">✓ 確認</button>
-        <button class="danger" :disabled="busy === f.id" @click="decide(f, 'rejected')">✗ 不成立</button>
+        <button class="ok" :disabled="busy === f.id" @click="decide(f, 'confirmed')"><UiIcon name="check" :size="15" /> 確認</button>
+        <button class="danger" :disabled="busy === f.id" @click="decide(f, 'rejected')"><UiIcon name="x" :size="15" /> 不成立</button>
         <button v-if="f.status !== 'new'" :disabled="busy === f.id" @click="decide(f, 'new')">改回待審</button>
       </footer>
       <p v-if="f.reviewedAt" class="muted">上次審核：{{ fmt(f.reviewedAt) }}</p>

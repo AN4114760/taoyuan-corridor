@@ -31,7 +31,7 @@ async function submit() {
 <template>
   <main class="auth">
     <div class="brand">
-      <div class="logo">♿</div>
+      <img class="logo" src="/frog/happy.png" alt="" />
       <h1>無障礙廊道</h1>
       <p class="muted">衛福部桃園醫院周邊｜一起找出不好走的人行道</p>
     </div>
@@ -49,7 +49,7 @@ async function submit() {
 <style scoped>
 .auth { min-height: 100%; max-width: 420px; margin: 0 auto; padding: calc(40px + env(safe-area-inset-top)) 20px 32px; display: flex; flex-direction: column; gap: 16px; }
 .brand { text-align: center; }
-.logo { width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 18px; background: var(--primary); color: #fff; font-size: 34px; display: flex; align-items: center; justify-content: center; }
+.logo { display: block; width: 76px; height: 96px; object-fit: contain; margin: 0 auto 10px; }
 .brand h1 { font-size: 24px; color: var(--primary); }
 .brand p { margin: 4px 0 0; }
 form { display: flex; flex-direction: column; gap: 12px; }

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" width="240" height="280">
+  <ellipse class="ground" cx="120" cy="256" rx="104" ry="13" fill="#1F2937" fill-opacity="0.28" />
+  <g stroke="#22292F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="34" y="204" width="36" height="48" rx="11" fill="#4B5563" />
+    <rect x="170" y="204" width="36" height="48" rx="11" fill="#4B5563" />
+    <path d="M 74 120 L 86 50 Q 90 34 108 34 L 140 34 Q 158 34 162 50 L 174 120 Z" fill="#FFFFFF" data-paint="body" />
+    <path d="M 150 36 Q 160 40 162 52 L 174 120 L 156 120 Z" fill="#CBD5E1" data-paint="shade" stroke="none" />
+    <path d="M 98 46 L 142 46" stroke="#E2E8F0" stroke-width="3" fill="none" />
+    <path d="M 82 116 L 92 72 Q 94 64 102 64 L 146 64 Q 154 64 156 72 L 166 116 Z" fill="#4B5563" />
+    <path d="M 140 66 L 166 116 L 150 116 L 128 66 Z" fill="#6B7280" stroke="none" />
+    <path d="M 102 74 L 94 104" stroke="#9CA3AF" stroke-width="3" fill="none" />
+    <ellipse cx="40" cy="118" rx="12" ry="9" fill="#FFFFFF" data-paint="body" />
+    <ellipse cx="208" cy="118" rx="12" ry="9" fill="#FFFFFF" data-paint="body" />
+    <path d="M 28 150 Q 28 126 54 120 L 194 120 Q 220 126 220 150 L 222 214 Q 222 230 206 230 L 42 230 Q 26 230 26 214 Z" fill="#FFFFFF" data-paint="body" />
+    <path d="M 204 124 Q 218 132 218 150 L 219 214 Q 219 226 206 227 L 190 227 Q 204 180 204 124 Z" fill="#CBD5E1" data-paint="shade" stroke="none" />
+    <path d="M 34 146 Q 36 130 54 126" stroke="#E2E8F0" stroke-width="3" fill="none" />
+    <circle cx="58" cy="158" r="15" fill="#FDE68A" />
+    <circle cx="190" cy="158" r="15" fill="#FDE68A" />
+    <circle cx="54" cy="154" r="4" fill="#FFFFFF" stroke="none" />
+    <circle cx="186" cy="154" r="4" fill="#FFFFFF" stroke="none" />
+    <rect x="88" y="146" width="72" height="22" rx="8" fill="#6B7280" />
+    <line x1="100" y1="157" x2="148" y2="157" stroke-width="2.5" />
+    <path d="M 34 182 Q 124 196 214 182" stroke-width="3" fill="none" />
+    <rect x="98" y="192" width="52" height="24" rx="5" fill="#FFFFFF" />
+    <line x1="108" y1="204" x2="140" y2="204" stroke-width="2.5" />
+  </g>
+</svg>
