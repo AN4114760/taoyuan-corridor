@@ -1,5 +1,5 @@
 // 地端伺服器 API：用暫存資料夾啟動，不動到真正的 data/
-import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -118,6 +118,12 @@ describe('志工回饋', () => {
     expect(list[0].anomalies[0]).toEqual({ category: 'tree-obstruction', photoCount: 1 })
     const img = await fetch(`${base}/api/feedback/${id}/photo/0/0?pin=${PIN}`)
     expect(img.headers.get('content-type')).toBe('image/jpeg')
+    expect(Buffer.from(await img.arrayBuffer())).toEqual(Buffer.from(JPEG.split(',')[1], 'base64'))
+  })
+  it('照片另存成檔案，feedback.json 只記路徑', () => {
+    const [f] = JSON.parse(readFileSync(join(root, 'backstage/data/feedback.json'), 'utf8'))
+    expect(f.anomalies[0].photos).toEqual([`photos/${id}/0-0.jpg`])
+    expect(existsSync(join(root, 'backstage/data', f.anomalies[0].photos[0]))).toBe(true)
   })
   it('審核：確認＋備註，志工看得到結果；status 不合法 → 400', async () => {
     const r = await call(`feedback/${id}`, { method: 'PATCH', body: json({ status: 'confirmed', reviewNote: '現場確認' }), pin: PIN })
